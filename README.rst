@@ -44,7 +44,10 @@ From Github
 -----------
 
 First, you will need to install the following prerequisite packages:
+<<<<<<< HEAD
 
+=======
+>>>>>>> 69b5bea992e066f48d2b205676aabd9b11a85010
 - Numpy_
 - Scipy_
 - Matplotlib_
