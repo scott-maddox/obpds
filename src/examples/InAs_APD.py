@@ -33,7 +33,7 @@ ls = LayerStructure([
     OhmicContact(),
     Layer(100*nm, Material(InAs, 1e19/cm3)),
     Layer(2*um, Material(InAs, 1e17/cm3)),
-    Layer(6*um, Material(InAs, 1e14/cm3)),
+    Layer(6*um, Material(InAs, -1e14/cm3)),
     Layer(1.5*um, Material(InAs,  -1e18/cm3)),
     Layer(0.5*um, Material(InAs,  -2e18/cm3)),
     OhmicContact(),
@@ -44,4 +44,4 @@ ls = LayerStructure([
 # ls.show_flatband() # show the flatband profile vs. depth
 
 # Simulate and show the equilibrium band profile using the default method.
-ls.show_equilibrium(N=1000)
+ls.show_equilibrium(T=300, N=1000)
