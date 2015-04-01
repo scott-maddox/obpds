@@ -51,7 +51,7 @@ First, you will need to install the following prerequisite packages:
 - OpenBandParams_
 
 .. _`Numpy`: http://docs.scipy.org/doc/numpy/user/install.html
-.. _`Scipy`: http://docs.scipy.org/doc/scipy/user/install.html
+.. _`Scipy`: http://www.scipy.org/install.html
 .. _`Matplotlib`: http://matplotlib.org/users/installing.html
 .. _`OpenBandParams`: http://scott-maddox.github.io/openbandparams/installation.html
 
