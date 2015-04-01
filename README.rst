@@ -1,7 +1,7 @@
 Open Band Parameters Device Simulator (OBPDS)
 =============================================
 
-A free, open-source technology computer aided design software for simulation
+A free, open-source technology computer aided design software for simulating
 semiconductor structures and devices.
 
 The plan is to begin by providing 1D, zero-current electrostatic simulation of
@@ -66,7 +66,7 @@ during this installation).
 Documentation
 =============
 
-Once you have `openbandparams` installed, check out the `tutorial`_ to
-get acquainted.
+Once you have `openbandparams` installed, check out the `tutorial`_
+(coming soon) to get acquainted.
 
 .. _`tutorial`: http://scott-maddox.github.io/obpds/tutorial
