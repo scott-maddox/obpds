@@ -1,3 +1,5 @@
+# ignore directory
+ignore/
 
 # tmp files
 *.swp
@@ -28,6 +30,8 @@ doc/examples/**/_*
 
 # Aptana generated files
 .settings/
+.project
+.pydevproject
 
 # OS generated files
 .DS_Store
