@@ -61,12 +61,12 @@ source package from the `github page`_, extract its contents, and run
 (OBPDS is a pure-python library, for now, so no compiling occurs
 during this installation).
 
-.. _`github page`: http://github.com/scott-maddox/openbandparams/releases/latest
+.. _`github page`: http://github.com/scott-maddox/obpds/releases/latest
 
 Documentation
 =============
 
-Once you have `openbandparams` installed, check out the `tutorial`_
+Once you have OBPDS installed, check out the `tutorial`_
 (coming soon) to get acquainted.
 
 .. _`tutorial`: http://scott-maddox.github.io/obpds/tutorial
