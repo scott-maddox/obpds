@@ -87,11 +87,6 @@ class Material(object):
             # Default behaviour
             raise AttributeError
     
-    def dielectric(self, **kwargs):
-        #TODO: temporary hack, since openbandparams doesn't currently
-        # have this information
-        return 12.
-    
     def Ei(self, T=300):
         if T in self._Ei:
             return self._Ei[T]
