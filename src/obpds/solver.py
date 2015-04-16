@@ -24,6 +24,9 @@ from numpy.linalg import norm
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import csr_matrix
 
+from .solution import EquilibriumSolution
+from .contact import OhmicContact
+
 class NewtonResult(object):
     def __init__(self, value, num_iter, converged):
         self.value = value
@@ -215,16 +218,16 @@ q = 1.602176565e-19 # C
 eps0 = 8.854187817620e-14 # C V**-1 cm**-1
 # Boltzmann constant
 k = 8.6173324e-5 # eV K**-1
-def poisson_eq(ls, T=300, N=1000):
+def poisson_eq(device, T=300., N=1000):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
-    equation for the given layer structure, ls, under equilibrium conditions
+    equation for the given device under equilibrium conditions
     at temperature, T.
 
     Arguments
     ---------
-    ls : LayerStructure
-        Layer structure
+    device : TwoTerminalDevice
+        device
     T : float
         Temperature [K]
     N : int
@@ -250,46 +253,61 @@ def poisson_eq(ls, T=300, N=1000):
         Ionized donor concentration [cm**-3]
     '''
     Vt = k*T  # eV
-    x = numpy.linspace(0., ls.get_thickness(), N)
+    flatband = device._get_flatband(T, N)
+    x = flatband.x
+    materials = device._get_materials(N)
     dx = x[1]  # cm
-    mats = [ls.get_material_at_depth(x_i) for x_i in x]
-    eps_r = numpy.array([mat.dielectric(T=T) for mat in mats])
+    
+    # materials parameters
+    eps_r = numpy.array([m.dielectric(T=T) for m in materials])
     eps = eps0 * eps_r  # C Vt**-1 cm**-1
     q_over_eps = q / eps  # Vt cm
-    Nnet = numpy.array([mat.Nnet(T=T) for mat in mats])  # cm**-3
-    meff_e_DOS = numpy.array([mat.meff_e_DOS(T=T) for mat in mats])  # cm**-3
-#     print 'meff_e_DOS', meff_e_DOS
-    Nc = numpy.array([mat.Nc(T=T) for mat in mats])  # cm**-3
-#     print 'Nc', Nc
+    Na = numpy.array([m.Na(T=T) for m in materials])  # cm**-3
+    Nd = numpy.array([m.Nd(T=T) for m in materials])  # cm**-3
+    Nnet = numpy.array([m.Nnet(T=T) for m in materials])  # cm**-3
+    Nc = numpy.array([m.Nc(T=T) for m in materials])  # cm**-3
     Ncref = Nc[0]  # cm**-3
-    Nv = numpy.array([mat.Nv(T=T) for mat in mats])  # cm**-3
-#     print 'Nv', Nv
+    Nv = numpy.array([m.Nv(T=T) for m in materials])  # cm**-3
     Nvref = Nv[0]  # cm**-3
-    VBO = numpy.array([mat.VBO(T=T) for mat in mats])  # cm**-3
-    VBOref = VBO[0]
-    Eg = numpy.array([mat.Eg(T=T) for mat in mats])  # cm**-3
-    Egref = Eg[0]
-    Delta_Egc = 0  # TODO: include bandgap reduction
-    Delta_Egv = 0  # TODO: include bandgap reduction
-    Vn = Vt*log(Nc/Ncref) - (VBO-VBOref+Eg-Egref) + Delta_Egc
-#     print 'Vn', Vn
-    Vp = Vt*log(Nv/Nvref) + (VBO-VBOref) + Delta_Egv
-#     print 'Vp', Vp
-    nieff = sqrt(Nc*Nv)*exp(-(Eg-Vn-Vp)/2/Vt)  # cm**-3
+
+    # band edges
+    Ev = flatband.Ev  # cm**-3
+    Evref = Ev[0]  # cm**-3
+    Ec = flatband.Ec  # cm**-3
+    Ecref = Ec[0]  # cm**-3
+    Ei = flatband.Ei
+
+    # band edge potentials
+    Delta_Egc = 0.  # TODO: include bandgap reduction
+    Delta_Egv = 0.  # TODO: include bandgap reduction
+    Vn = Vt*log(Nc/Ncref) - (Ec-Ecref) + Delta_Egc
+    Vp = Vt*log(Nv/Nvref) + (Ev-Evref) + Delta_Egv
+
+    # effective intrinsic carrier concentration
+    nieff = sqrt(Nc*Nv)*exp(-(Ec-Ev-Vn-Vp)/2./Vt)  # cm**-3
     nieffref = nieff[0]  # cm**-3
     
     # Use charge neutrality to guess psi
     psi0 = numpy.zeros(N)
     for i in xrange(N):
-        if Nnet[i] <= 0:
-            p0 = -Nnet[i]/2 + sqrt((Nnet[i]/2)**2+nieff[i]**2)
-            psi0[i] = -inv_fermi_p(psi=0, Vp=Vp[i], p=p0, nieffref=nieffref, Vt=Vt)
+        if Nnet[i] <= 0.:
+            p0 = -Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2.)
+            psi0[i] = -inv_fermi_p(psi=0., Vp=Vp[i], p=p0,
+                                   nieffref=nieffref, Vt=Vt)
         else:
-            n0 = Nnet[i]/2 + sqrt((Nnet[i]/2)**2+nieff[i]**2)
-            psi0[i] = -inv_fermi_n(psi=0, Vn=Vn[i], n=n0, nieffref=nieffref, Vt=Vt)
-#     print 'psi0', psi0
-    a=psi0[0]
-    b=psi0[-1]
+            n0 = Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2)
+            psi0[i] = -inv_fermi_n(psi=0., Vn=Vn[i], n=n0,
+                                   nieffref=nieffref, Vt=Vt)
+    
+    # boundary conditions
+    if isinstance(device._contacts[0], OhmicContact):
+        a=psi0[0]
+    else:
+        raise RuntimeError('unexpected execution path')
+    if isinstance(device._contacts[1], OhmicContact):
+        b=psi0[-1]
+    else:
+        raise RuntimeError('unexpected execution path')
 
     zero = numpy.zeros(N)
     global last_u 
@@ -313,12 +331,11 @@ def poisson_eq(ls, T=300, N=1000):
     psi = result.value  # eV
     p = fermi_p(psi=psi, Vp=Vp, phi_p=zero, nieffref=nieffref, Vt=Vt)
     n = fermi_n(psi=psi, Vn=Vn, phi_n=zero, nieffref=nieffref, Vt=Vt)
-    Ec = -Vt*log(n/Nc)
-    Ev = Vt*log(p/Nv)
-    Ei = numpy.array([Ev[i]+mats[i].Ei(T=T) for i in xrange(N)])
-    Na = numpy.array([mats[i].Na(T=T) for i in xrange(N)])
-    Nd = numpy.array([mats[i].Nd(T=T) for i in xrange(N)])
-    return x, Ev, Ec, Ei, p, n, Na, Nd
+    Eoffset = Ei[0]
+    Ev = Ev-psi-Eoffset
+    Ec = Ec-psi-Eoffset
+    Ei = Ei-psi-Eoffset
+    return EquilibriumSolution(T, N, x, Na, Nd, Ev, Ec, Ei, psi, n, p)
 
 def plot(psi, psi_kp, p, n, Nnet):
     import matplotlib.pyplot as plt
