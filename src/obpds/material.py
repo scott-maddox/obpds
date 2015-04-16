@@ -22,6 +22,9 @@ from .units import units, to_units, cm, cm3
 import numpy
 
 
+__all__ = ['Material']
+
+
 # k = 8.6173324e-5 * unit.eV * unit.K**-1
 # h = 4.135667516e-15 * unit.eV * unit.s
 # pi = numpy.pi

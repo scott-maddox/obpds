@@ -20,6 +20,10 @@
 
 from numpy import exp, log
 
+
+__all__ = ['fermi_p', 'fermi_n', 'inv_fermi_p', 'inv_fermi_n']
+
+
 def fermi_p(psi, Vp, phi_p, nieffref, Vt):
     return nieffref*exp((-psi+Vp+phi_p)/Vt)
 
