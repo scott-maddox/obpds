@@ -18,19 +18,19 @@
 #
 #############################################################################
 
+# Make sure we import the local obpds version
+import os
+import sys
+sys.path.insert(0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from obpds import *
 
-__all__ = ['Contact', 'OhmicContact', 'SchottkyContact']
+# Layers
+n = Layer(0.3*um, Material(GaAs, -1e17/cm3))
 
+# Device
+d = TwoTerminalDevice(layers=[n],
+                      contacts=[SchottkyContact(), OhmicContact()])
 
-class Contact(object):
-    pass
-
-class OhmicContact(Contact):
-    pass
-
-class SchottkyContact(Contact):
-    '''
-    A Schottky contact that pins at the "universal pinning level",
-    which is approximately 4.9 eV below the vacuum level.
-    '''
-    pass
+# Simulate and show the equilibrium band profile using the default method.
+d.show_equilibrium()

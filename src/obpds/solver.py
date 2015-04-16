@@ -25,7 +25,7 @@ from scipy.sparse.linalg import spsolve
 from scipy.sparse import csr_matrix
 
 from .solution import EquilibriumSolution
-from .contact import OhmicContact
+from .contact import OhmicContact, SchottkyContact
 
 class NewtonResult(object):
     def __init__(self, value, num_iter, converged):
@@ -300,14 +300,20 @@ def poisson_eq(device, T=300., N=1000):
                                    nieffref=nieffref, Vt=Vt)
     
     # boundary conditions
+    Efs = 4.9
     if isinstance(device._contacts[0], OhmicContact):
         a=psi0[0]
+    elif isinstance(device._contacts[0], SchottkyContact):
+        a = materials[0].electron_affinity(T=T) + Ec[0] - Ei[0] - Efs
     else:
         raise RuntimeError('unexpected execution path')
     if isinstance(device._contacts[1], OhmicContact):
         b=psi0[-1]
+    elif isinstance(device._contacts[1], SchottkyContact):
+        b = materials[0].electron_affinity(T=T) + Ec[0] - Ei[0] - Efs
     else:
         raise RuntimeError('unexpected execution path')
+    print a, b
 
     zero = numpy.zeros(N)
     global last_u 
