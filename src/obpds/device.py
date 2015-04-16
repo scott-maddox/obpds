@@ -148,13 +148,17 @@ class TwoTerminalDevice(object):
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
         _, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
+        ax1.set_ymargin(0.05)
+        ax2.set_ymargin(0.05)
         ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
         ax1.plot(x, solution.Ec, 'b-', label='$E_c$')
         ax1.plot(x, solution.Ef, 'k--', label='$E_f$')
         ax1.plot(x, solution.Ei, 'k:', label='$E_i$')
         ax1.set_ylabel('Energy (eV)')
-        ax2.semilogy(x, solution.Na, 'r-', label='$N_A$')
-        ax2.semilogy(x, solution.Nd, 'b-', label='$N_D$')
+        if (solution.Na > 0.).any():
+            ax2.semilogy(x, solution.Na, 'r-', label='$N_A$')
+        if (solution.Nd > 0.).any():
+            ax2.semilogy(x, solution.Nd, 'b-', label='$N_D$')
         ax2.semilogy(x, solution.p, 'r--', label='$p$')
         ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
