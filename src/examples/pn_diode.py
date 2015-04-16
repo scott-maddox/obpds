@@ -30,7 +30,7 @@ p = Layer(1*um, Material(GaAs,  1e17/cm3))
 n = Layer(1*um, Material(GaAs, -1e17/cm3))
 
 # Device
-d = Device(layers=[p,n])
+d = TwoTerminalDevice(layers=[p, n])
 
 # Simulate and show the equilibrium band profile using the default method.
 d.show_equilibrium()
