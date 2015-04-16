@@ -107,9 +107,12 @@ class TwoTerminalDevice(object):
         x = self._get_x(N)
         materials = self._get_materials(N)
         Ev = numpy.array([m.VBO() for m in materials], dtype=float)
+        Ec_Gamma = numpy.array([m.CBO_Gamma() for m in materials], dtype=float)
+        Ec_L = numpy.array([m.CBO_L() for m in materials], dtype=float)
+        Ec_X = numpy.array([m.CBO_X() for m in materials], dtype=float)
         Ec = numpy.array([m.CBO() for m in materials], dtype=float)
         Ei = numpy.array([m.VBO()+m.Ei() for m in materials], dtype=float)
-        solution = FlatbandSolution(T, N, x, Ev, Ec, Ei)
+        solution = FlatbandSolution(T, N, x, Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei)
         self._flatband[(T, N)] = solution
         return solution
     

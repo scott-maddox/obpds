@@ -28,25 +28,36 @@ class Solution(object):
     pass
 
 class FlatbandSolution(Solution):
-    def __init__(self, T, N, x, Ev, Ec, Ei):
+    def __init__(self, T, N, x, Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei):
         self.T = T
         self.N = N
         self.x = x
         self.Ev = Ev
+        self.Ec_Gamma = Ec_Gamma
+        self.Ec_L = Ec_L
+        self.Ec_X = Ec_X
         self.Ec = Ec
         self.Ei = Ei
 
 class EquilibriumSolution(Solution):
-    def __init__(self, T, N, x, Na, Nd, Ev, Ec, Ei, psi, n, p):
+    def __init__(self, T, N, x, Na, Nd,
+                 Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
+                 psi, n_Gamma, n_L, n_X, n, p):
         self.T = T
         self.N = N
         self.x = x
         self.Na = Na
         self.Nd = Nd
         self.Ev = Ev
+        self.Ec_Gamma = Ec_Gamma
+        self.Ec_L = Ec_L
+        self.Ec_X = Ec_X
         self.Ec = Ec
         self.Ei = Ei
         self.psi = psi
+        self.n_Gamma = n_Gamma
+        self.n_L = n_L
+        self.n_X = n_X
         self.n = n
         self.p = p
         self.Ef = numpy.zeros(N)

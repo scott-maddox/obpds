@@ -24,14 +24,14 @@ from numpy import exp, log
 __all__ = ['fermi_p', 'fermi_n', 'inv_fermi_p', 'inv_fermi_n']
 
 
-def fermi_p(psi, Vp, phi_p, nieffref, Vt):
-    return nieffref*exp((-psi+Vp+phi_p)/Vt)
+def fermi_p(phi_p, Ev, Nv, Vt):
+    return Nv*exp((Ev-phi_p)/Vt)
 
-def fermi_n(psi, Vn, phi_n, nieffref, Vt):
-    return nieffref*exp((psi+Vn-phi_n)/Vt)
+def fermi_n(phi_n, Ec, Nc, Vt):
+    return Nc*exp((phi_n-Ec)/Vt)
 
-def inv_fermi_p(psi, Vp, p, nieffref, Vt):
-    return psi - Vp + log(p / nieffref)*Vt
+def inv_fermi_p(p, Ev, Nv, Vt):
+    return Ev - log(p / Nv)*Vt
 
-def inv_fermi_n(psi, Vn, n, nieffref, Vt):
-    return psi + Vn - log(n / nieffref)*Vt
+def inv_fermi_n(n, Ec, Nc, Vt):
+    return Ec + log(n / Nc)*Vt

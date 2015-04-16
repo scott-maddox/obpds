@@ -25,6 +25,8 @@ import numpy
 __all__ = ['Material']
 
 
+# Boltzmann constant
+k = 8.6173324e-5 # eV K**-1
 # k = 8.6173324e-5 * unit.eV * unit.K**-1
 # h = 4.135667516e-15 * unit.eV * unit.s
 # pi = numpy.pi
@@ -48,7 +50,9 @@ class Material(object):
             Ionized donor density (cm**-3)
         '''
         # initialize caches
-        self._Nc = {}
+        self._Nc_Gamma = {}
+        self._Nc_X = {}
+        self._Nc_L = {}
         self._Nv = {}
         self._nie = {}
         self._Ei = {}
@@ -94,35 +98,51 @@ class Material(object):
         if T in self._Ei:
             return self._Ei[T]
         else:
-            k = 8.6173324e-5 # eV K**-1
-            Ei = self.Eg()/2+k*T/2*numpy.log(self.Nv(T=T)/self.Nc(T=T))
+            Ei = self.Eg()/2.+k*T/2.*numpy.log(self.Nv(T=T)/self.Nc(T=T))
             self._Ei[T] = Ei
             return Ei
     
-    def nie(self, T=300):
-        '''Returns the effective intrinsic carrier concentration (cm**-3)'''
-        #TODO: include bandgap reduction, degeneracy, and non-parabolicity
-        # using an additive energy that changes with doping.
-        if T in self._nie:
-            return self._nie[T]
+    def Nc_Gamma(self, T=300):
+        if T in self._Nc_Gamma:
+            return self._Nc_Gamma[T]
         else:
-            k = 8.6173324e-5 # eV K**-1
-            Vt2 = k*T*2 # eV
-            Eg = self.Eg(T=T)
-            Nc = self.Nc(T=T)
-            Nv = self.Nv(T=T)
-            nie = numpy.sqrt(Nc*Nv)*numpy.exp(-Eg/Vt2)
-            self._nie[T] = nie
-            return nie
-    
-    def Nc(self, T=300):
-        if T in self._Nc:
-            return self._Nc[T]
-        else:
-            meff = self.meff_e_DOS(T=T)
+            meff = self.meff_e_Gamma(T=T)
             Nc = N_prefactor * (meff*T)**(1.5)
-            self._Nc[T] = Nc
+            self._Nc_Gamma[T] = Nc
             return Nc
+    
+    def Nc_L(self, T=300):
+        if T in self._Nc_L:
+            return self._Nc_L[T]
+        else:
+            meff = self.meff_e_L_DOS(T=T)
+            Nc = N_prefactor * (meff*T)**(1.5)
+            self._Nc_L[T] = Nc
+            return Nc
+    
+    def Nc_X(self, T=300):
+        if T in self._Nc_X:
+            return self._Nc_X[T]
+        else:
+            meff = self.meff_e_X_DOS(T=T)
+            Nc = N_prefactor * (meff*T)**(1.5)
+            self._Nc_X[T] = Nc
+            return Nc
+    
+    def Nc(self, T=300.):
+        Eg_Gamma = self.Eg_Gamma(T=T)
+        Eg_X = self.Eg_X(T=T)
+        Eg_L = self.Eg_L(T=T)
+        if Eg_Gamma < Eg_X:
+            if Eg_Gamma < Eg_L:
+                return self.Nc_Gamma()
+            else:
+                return self.Nc_L()
+        else:
+            if Eg_X < Eg_L:
+                return self.Nc_X()
+            else:
+                return self.Nc_L()
 
     def Nv(self, T=300.):
         if T in self._Nv:
@@ -132,21 +152,6 @@ class Material(object):
             Nv = N_prefactor * (meff*T)**(1.5)
             self._Nv[T] = Nv
             return Nv
-
-    def meff_e_DOS(self, **kwargs):
-        Eg_Gamma = self.Eg_Gamma(**kwargs)
-        Eg_X = self.Eg_X(**kwargs)
-        Eg_L = self.Eg_L(**kwargs)
-        if Eg_Gamma < Eg_X:
-            if Eg_Gamma < Eg_L:
-                return self.meff_e_Gamma()
-            else:
-                return self.meff_e_L_DOS()
-        else:
-            if Eg_X < Eg_L:
-                return self.meff_e_X_DOS()
-            else:
-                return self.meff_e_L_DOS()
 
     def meff_h_DOS(self, T=300.):
         #TODO: calculate this properly

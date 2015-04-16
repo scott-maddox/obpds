@@ -22,7 +22,7 @@ import numpy
 from numpy import exp, log, sqrt
 from numpy.linalg import norm
 from scipy.sparse.linalg import spsolve
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, spdiags
 
 from .solution import EquilibriumSolution
 from .contact import OhmicContact, SchottkyContact
@@ -265,83 +265,140 @@ def poisson_eq(device, T=300., N=1000):
     Na = numpy.array([m.Na(T=T) for m in materials])  # cm**-3
     Nd = numpy.array([m.Nd(T=T) for m in materials])  # cm**-3
     Nnet = numpy.array([m.Nnet(T=T) for m in materials])  # cm**-3
+    Nc_Gamma = numpy.array([m.Nc_Gamma(T=T) for m in materials])  # cm**-3
+    Nc_L = numpy.array([m.Nc_L(T=T) for m in materials])  # cm**-3
+    Nc_X = numpy.array([m.Nc_X(T=T) for m in materials])  # cm**-3
     Nc = numpy.array([m.Nc(T=T) for m in materials])  # cm**-3
-    Ncref = Nc[0]  # cm**-3
     Nv = numpy.array([m.Nv(T=T) for m in materials])  # cm**-3
-    Nvref = Nv[0]  # cm**-3
 
     # band edges
-    Ev = flatband.Ev  # cm**-3
-    Evref = Ev[0]  # cm**-3
-    Ec = flatband.Ec  # cm**-3
-    Ecref = Ec[0]  # cm**-3
-    Ei = flatband.Ei
+    Ev0 = flatband.Ev  # cm**-3
+    Ec_Gamma0 = flatband.Ec_Gamma  # cm**-3
+    Ec_L0 = flatband.Ec_L  # cm**-3
+    Ec_X0 = flatband.Ec_X  # cm**-3
+    Ec0 = flatband.Ec  # cm**-3
+    Ei0 = flatband.Ei
 
     # band edge potentials
-    Delta_Egc = 0.  # TODO: include bandgap reduction
-    Delta_Egv = 0.  # TODO: include bandgap reduction
-    Vn = Vt*log(Nc/Ncref) - (Ec-Ecref) + Delta_Egc
-    Vp = Vt*log(Nv/Nvref) + (Ev-Evref) + Delta_Egv
+#     Delta_Egc = 0.  # TODO: include bandgap reduction
+#     Delta_Egv = 0.  # TODO: include bandgap reduction
+    Vn = Vt*log(Nc/Nc[0]) - (Ec0 - Ec0[0])# + Delta_Egc
+    Vp = Vt*log(Nv/Nv[0]) - (Ev0 - Ev0[0])# + Delta_Egv
 
     # effective intrinsic carrier concentration
-    nieff = sqrt(Nc*Nv)*exp(-(Ec-Ev-Vn-Vp)/2./Vt)  # cm**-3
-    nieffref = nieff[0]  # cm**-3
+    nieff = sqrt(Nc*Nv)*exp(-(Ec0-Ev0)/2./Vt)  # cm**-3
     
     # Use charge neutrality to guess psi
     psi0 = numpy.zeros(N)
     for i in xrange(N):
         if Nnet[i] <= 0.:
             p0 = -Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2.)
-            psi0[i] = -inv_fermi_p(psi=0., Vp=Vp[i], p=p0,
-                                   nieffref=nieffref, Vt=Vt)
+#             p0 = Nv*exp((Ev-phi_p)/Vt)
+#             Ev = Ev0-psi0
+#             p0 = Nv*exp(((Ev0-psi0)-phi_p)/Vt)
+#             Vt*log(p0/Nv) = (Ev0-psi0)-phi_p
+#             Vt*log(p0/Nv) - Ev0 + phi_p = -psi0
+#             psi0 = -Vt*log(p0/Nv) + Ev0 - phi_p
+#             phi_p = 0
+            psi0[i] = -Vt*log(p0/Nv[i]) + Ev0[i]
         else:
             n0 = Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2)
-            psi0[i] = -inv_fermi_n(psi=0., Vn=Vn[i], n=n0,
-                                   nieffref=nieffref, Vt=Vt)
+#             n0 = Nc*exp((phi_n-Ec)/Vt)
+#             Ec = Ec0-psi0
+#             n0 = Nc*exp((phi_n-(Ec0-psi0))/Vt)
+#             Vt*log(n0/Nc) = phi_n-(Ec0-psi0)
+#             Vt*log(n0/Nc)-phi_n+Ec0 = psi0
+#             phi_n = 0
+            psi0[i] = Vt*log(n0/Nc[i])+Ec0[i]
+    # Refine with newton method, in case the single conduction band
+    # approximation is inadequate
+    def G0(u):
+        Ev = Ev0 - u
+        Ec_Gamma = Ec_Gamma0 - u
+        Ec_L = Ec_L0 - u
+        Ec_X = Ec_X0 - u
+        p = fermi_p(0., Ev, Nv, Vt)
+        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
+        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
+        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
+        n = n_Gamma + n_L + n_X
+        f = (p-n+Nnet)
+        return f
+    def A0(u):
+        Ev = Ev0 - u
+        Ec_Gamma = Ec_Gamma0 - u
+        Ec_L = Ec_L0 - u
+        Ec_X = Ec_X0 - u
+        p = fermi_p(0., Ev, Nv, Vt)
+        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
+        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
+        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
+        n = n_Gamma + n_L + n_X
+        df_du = -1.*(p+n)/Vt
+        return spdiags(df_du, [0], N, N, format='csr')
+    result = newton(G0, A0, psi0)
+    psi0 = result.value  # eV
     
     # boundary conditions
     Efs = 4.9
     if isinstance(device._contacts[0], OhmicContact):
         a=psi0[0]
     elif isinstance(device._contacts[0], SchottkyContact):
-        a = materials[0].electron_affinity(T=T) + Ec[0] - Ei[0] - Efs
+        a = materials[0].electron_affinity(T=T) + Ec0[0] - Efs
     else:
         raise RuntimeError('unexpected execution path')
     if isinstance(device._contacts[1], OhmicContact):
         b=psi0[-1]
     elif isinstance(device._contacts[1], SchottkyContact):
-        b = materials[0].electron_affinity(T=T) + Ec[0] - Ei[0] - Efs
+        b = materials[0].electron_affinity(T=T) + Ec0[0] - Efs
     else:
         raise RuntimeError('unexpected execution path')
-    print a, b
 
-    zero = numpy.zeros(N)
     global last_u 
     last_u = psi0
     def G(u):
         global last_u
-        p = fermi_p(psi=u, Vp=Vp, phi_p=zero, nieffref=nieffref, Vt=Vt)
-        n = fermi_n(psi=u, Vn=Vn, phi_n=zero, nieffref=nieffref, Vt=Vt)
+        Ev = Ev0 - u
+        Ec_Gamma = Ec_Gamma0 - u
+        Ec_L = Ec_L0 - u
+        Ec_X = Ec_X0 - u
+        p = fermi_p(0., Ev, Nv, Vt)
+        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
+        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
+        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
+        n = n_Gamma + n_L + n_X
 #         plot(last_u, u, p, n, Nnet)
         f = (p-n+Nnet)*q_over_eps
         _Fpsi = Fpsi(u, f, dx, a=a, b=b)
         last_u = u
         return _Fpsi
     def A(u):
-        p = fermi_p(psi=u, Vp=Vp, phi_p=zero, nieffref=nieffref, Vt=Vt)
-        n = fermi_n(psi=u, Vn=Vn, phi_n=zero, nieffref=nieffref, Vt=Vt)
+        Ev = Ev0 - u
+        Ec_Gamma = Ec_Gamma0 - u
+        Ec_L = Ec_L0 - u
+        Ec_X = Ec_X0 - u
+        p = fermi_p(0., Ev, Nv, Vt)
+        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
+        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
+        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
+        n = n_Gamma + n_L + n_X
         df_du = -1.*(p+n)*q_over_eps/Vt
         return jacobian__Fpsi__psi(df_du, dx)
     
     result = newton(G, A, psi0)
     psi = result.value  # eV
-    p = fermi_p(psi=psi, Vp=Vp, phi_p=zero, nieffref=nieffref, Vt=Vt)
-    n = fermi_n(psi=psi, Vn=Vn, phi_n=zero, nieffref=nieffref, Vt=Vt)
-    Eoffset = Ei[0]
-    Ev = Ev-psi-Eoffset
-    Ec = Ec-psi-Eoffset
-    Ei = Ei-psi-Eoffset
-    return EquilibriumSolution(T, N, x, Na, Nd, Ev, Ec, Ei, psi, n, p)
+    Ev = Ev0 - psi
+    Ec_Gamma = Ec_Gamma0 - psi
+    Ec_L = Ec_L0 - psi
+    Ec_X = Ec_X0 - psi
+    p = fermi_p(0., Ev, Nv, Vt)
+    n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
+    n_L = fermi_n(0., Ec_L, Nc_L, Vt)
+    n_X = fermi_n(0., Ec_X, Nc_X, Vt)
+    n = n_Gamma + n_L + n_X
+    return EquilibriumSolution(T, N, x, Na, Nd,
+                               Ev, Ec_Gamma, Ec_L, Ec_X, Ec0-psi, Ei0-psi,
+                               psi, n_Gamma, n_L, n_X, n, p)
 
 def plot(psi, psi_kp, p, n, Nnet):
     import matplotlib.pyplot as plt
