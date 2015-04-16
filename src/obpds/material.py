@@ -124,11 +124,11 @@ class Material(object):
             self._Nc[T] = Nc
             return Nc
 
-    def Nv(self, T=300):
+    def Nv(self, T=300.):
         if T in self._Nv:
             return self._Nv[T]
         else:
-            meff = .41#self.meff_h_DOS(T=T)
+            meff = self.meff_h_DOS(T=T)
             Nv = N_prefactor * (meff*T)**(1.5)
             self._Nv[T] = Nv
             return Nv
@@ -148,9 +148,9 @@ class Material(object):
             else:
                 return self.meff_e_L_DOS()
 
-    def meff_h_DOS(self, T=300):
+    def meff_h_DOS(self, T=300.):
         #TODO: calculate this properly
-        return (self.meff_hh_100(T=T)*self.meff_hh_111(T=T))**0.5
+        return self.meff_hh_100(T=T)
 
     def Na(self, **kwargs):
         '''Returns the ionized acceptor concentration, Na (cm**-3)'''
