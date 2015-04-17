@@ -33,4 +33,5 @@ class SchottkyContact(Contact):
     A Schottky contact that pins at the "universal pinning level",
     which is approximately 4.9 eV below the vacuum level.
     '''
-    pass
+    def __init__(self, work_function=4.9):
+        self.work_function = work_function

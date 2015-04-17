@@ -340,17 +340,18 @@ def poisson_eq(device, T=300., N=1000):
     psi0 = result.value  # eV
     
     # boundary conditions
-    Efs = 4.9
     if isinstance(device._contacts[0], OhmicContact):
         a=psi0[0]
     elif isinstance(device._contacts[0], SchottkyContact):
-        a = materials[0].electron_affinity(T=T) + Ec0[0] - Efs
+        wf = device._contacts[0].work_function
+        a = materials[0].electron_affinity(T=T) + Ec0[0] - wf
     else:
         raise RuntimeError('unexpected execution path')
     if isinstance(device._contacts[1], OhmicContact):
         b=psi0[-1]
     elif isinstance(device._contacts[1], SchottkyContact):
-        b = materials[0].electron_affinity(T=T) + Ec0[0] - Efs
+        wf = device._contacts[1].work_function
+        b = materials[0].electron_affinity(T=T) + Ec0[0] - wf
     else:
         raise RuntimeError('unexpected execution path')
 
