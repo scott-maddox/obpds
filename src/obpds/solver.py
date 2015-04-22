@@ -109,6 +109,7 @@ def newton(G, A, u0, atol=1e-4, tau=0.5, max_iter=100):
 
         # Step 5. Quit if converged; iterate if not.
         duk_max = numpy.abs(duk).max()
+#         print duk_max, atol
         if duk_max < atol:
             print 'newton_poisson converged after {} iterations'.format(k)
             return NewtonResult(value=ukp, num_iter=k, converged=True)
@@ -218,7 +219,7 @@ q = 1.602176565e-19 # C
 eps0 = 8.854187817620e-14 # C V**-1 cm**-1
 # Boltzmann constant
 k = 8.6173324e-5 # eV K**-1
-def poisson_eq(device, T=300., N=1000):
+def poisson_eq(device, T=300., N=1000, boltz=False):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
     equation for the given device under equilibrium conditions
@@ -232,6 +233,8 @@ def poisson_eq(device, T=300., N=1000):
         Temperature [K]
     N : int
         Number of uniformly spaced grid points
+    boltz : bool
+        Use the Boltzmann (non-degenerate) approximation?
 
     Returns
     -------
@@ -278,6 +281,59 @@ def poisson_eq(device, T=300., N=1000):
     Ec_X0 = flatband.Ec_X  # cm**-3
     Ec0 = flatband.Ec  # cm**-3
     Ei0 = flatband.Ei
+    
+    # define functions for calculating p, n, dp, and dn
+    print 'boltz', boltz
+    if boltz:
+        def p(u):
+            Ev = Ev0 - u
+            return boltz_p(0., Ev, Nv, Vt)
+        def n_Gamma(u):
+            Ec_Gamma = Ec_Gamma0 - u
+            return boltz_n(0., Ec_Gamma, Nc_Gamma, Vt)
+        def n_L(u):
+            Ec_L = Ec_L0 - u
+            return boltz_n(0., Ec_L, Nc_L, Vt)
+        def n_X(u):
+            Ec_X = Ec_X0 - u
+            return boltz_n(0., Ec_X, Nc_X, Vt)
+        def n(u):
+            return n_Gamma(u)+n_L(u)+n_X(u)
+        def dp(u):
+            Ev = Ev0 - u
+            return dboltz_p(0., Ev, Nv, Vt)
+        def dn(u):
+            Ec_Gamma = Ec_Gamma0 - u
+            Ec_L = Ec_L0 - u
+            Ec_X = Ec_X0 - u
+            return (dboltz_n(0., Ec_Gamma, Nc_Gamma, Vt) +
+                    dboltz_n(0., Ec_L, Nc_L, Vt) + 
+                    dboltz_n(0., Ec_X, Nc_X, Vt))
+    else:
+        def p(u):
+            Ev = Ev0 - u
+            return fermi_p(0., Ev, Nv, Vt)
+        def n_Gamma(u):
+            Ec_Gamma = Ec_Gamma0 - u
+            return fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
+        def n_L(u):
+            Ec_L = Ec_L0 - u
+            return fermi_n(0., Ec_L, Nc_L, Vt)
+        def n_X(u):
+            Ec_X = Ec_X0 - u
+            return fermi_n(0., Ec_X, Nc_X, Vt)
+        def n(u):
+            return n_Gamma(u)+n_L(u)+n_X(u)
+        def dp(u):
+            Ev = Ev0 - u
+            return dfermi_p(0., Ev, Nv, Vt)
+        def dn(u):
+            Ec_Gamma = Ec_Gamma0 - u
+            Ec_L = Ec_L0 - u
+            Ec_X = Ec_X0 - u
+            return (dfermi_n(0., Ec_Gamma, Nc_Gamma, Vt) +
+                    dfermi_n(0., Ec_L, Nc_L, Vt) + 
+                    dfermi_n(0., Ec_X, Nc_X, Vt))
 
     # band edge potentials
 #     Delta_Egc = 0.  # TODO: include bandgap reduction
@@ -293,48 +349,16 @@ def poisson_eq(device, T=300., N=1000):
     for i in xrange(N):
         if Nnet[i] <= 0.:
             p0 = -Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2.)
-#             p0 = Nv*exp((Ev-phi_p)/Vt)
-#             Ev = Ev0-psi0
-#             p0 = Nv*exp(((Ev0-psi0)-phi_p)/Vt)
-#             Vt*log(p0/Nv) = (Ev0-psi0)-phi_p
-#             Vt*log(p0/Nv) - Ev0 + phi_p = -psi0
-#             psi0 = -Vt*log(p0/Nv) + Ev0 - phi_p
-#             phi_p = 0
             psi0[i] = -Vt*log(p0/Nv[i]) + Ev0[i]
         else:
             n0 = Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2)
-#             n0 = Nc*exp((phi_n-Ec)/Vt)
-#             Ec = Ec0-psi0
-#             n0 = Nc*exp((phi_n-(Ec0-psi0))/Vt)
-#             Vt*log(n0/Nc) = phi_n-(Ec0-psi0)
-#             Vt*log(n0/Nc)-phi_n+Ec0 = psi0
-#             phi_n = 0
             psi0[i] = Vt*log(n0/Nc[i])+Ec0[i]
     # Refine with newton method, in case the single conduction band
     # approximation is inadequate
     def G0(u):
-        Ev = Ev0 - u
-        Ec_Gamma = Ec_Gamma0 - u
-        Ec_L = Ec_L0 - u
-        Ec_X = Ec_X0 - u
-        p = fermi_p(0., Ev, Nv, Vt)
-        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
-        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
-        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
-        n = n_Gamma + n_L + n_X
-        f = (p-n+Nnet)
-        return f
+        return (p(u)-n(u)+Nnet)
     def A0(u):
-        Ev = Ev0 - u
-        Ec_Gamma = Ec_Gamma0 - u
-        Ec_L = Ec_L0 - u
-        Ec_X = Ec_X0 - u
-        p = fermi_p(0., Ev, Nv, Vt)
-        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
-        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
-        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
-        n = n_Gamma + n_L + n_X
-        df_du = -1.*(p+n)/Vt
+        df_du = (dp(u) - dn(u))
         return spdiags(df_du, [0], N, N, format='csr')
     result = newton(G0, A0, psi0)
     psi0 = result.value  # eV
@@ -355,51 +379,25 @@ def poisson_eq(device, T=300., N=1000):
     else:
         raise RuntimeError('unexpected execution path')
 
-    global last_u 
-    last_u = psi0
+#     global last_u
+#     last_u = psi0
     def G(u):
-        global last_u
-        Ev = Ev0 - u
-        Ec_Gamma = Ec_Gamma0 - u
-        Ec_L = Ec_L0 - u
-        Ec_X = Ec_X0 - u
-        p = fermi_p(0., Ev, Nv, Vt)
-        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
-        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
-        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
-        n = n_Gamma + n_L + n_X
-#         plot(last_u, u, p, n, Nnet)
-        f = (p-n+Nnet)*q_over_eps
+#         global last_u
+#         plot(last_u, u, p(u), n(u), Nnet)
+#         last_u = u
+        f = (p(u)-n(u)+Nnet)*q_over_eps
         _Fpsi = Fpsi(u, f, dx, a=a, b=b)
-        last_u = u
         return _Fpsi
     def A(u):
-        Ev = Ev0 - u
-        Ec_Gamma = Ec_Gamma0 - u
-        Ec_L = Ec_L0 - u
-        Ec_X = Ec_X0 - u
-        p = fermi_p(0., Ev, Nv, Vt)
-        n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
-        n_L = fermi_n(0., Ec_L, Nc_L, Vt)
-        n_X = fermi_n(0., Ec_X, Nc_X, Vt)
-        n = n_Gamma + n_L + n_X
-        df_du = -1.*(p+n)*q_over_eps/Vt
+        df_du = q_over_eps*(dp(u) - dn(u))
         return jacobian__Fpsi__psi(df_du, dx)
     
     result = newton(G, A, psi0)
     psi = result.value  # eV
-    Ev = Ev0 - psi
-    Ec_Gamma = Ec_Gamma0 - psi
-    Ec_L = Ec_L0 - psi
-    Ec_X = Ec_X0 - psi
-    p = fermi_p(0., Ev, Nv, Vt)
-    n_Gamma = fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
-    n_L = fermi_n(0., Ec_L, Nc_L, Vt)
-    n_X = fermi_n(0., Ec_X, Nc_X, Vt)
-    n = n_Gamma + n_L + n_X
     return EquilibriumSolution(T, N, x, Na, Nd,
-                               Ev, Ec_Gamma, Ec_L, Ec_X, Ec0-psi, Ei0-psi,
-                               psi, n_Gamma, n_L, n_X, n, p)
+                               Ev0 - psi, Ec_Gamma0 - psi, Ec_L0 - psi,
+                               Ec_X0 - psi, Ec0-psi, Ei0-psi, psi,
+                               n_Gamma(psi), n_L(psi), n_X(psi), n(psi), p(psi))
 
 def plot(psi, psi_kp, p, n, Nnet):
     import matplotlib.pyplot as plt
