@@ -219,7 +219,7 @@ q = 1.602176565e-19 # C
 eps0 = 8.854187817620e-14 # C V**-1 cm**-1
 # Boltzmann constant
 k = 8.6173324e-5 # eV K**-1
-def poisson_eq(device, T=300., N=1000, boltz=False):
+def poisson_eq(device, T=300., N=1000, approx='parabolic'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
     equation for the given device under equilibrium conditions.
@@ -232,8 +232,10 @@ def poisson_eq(device, T=300., N=1000, boltz=False):
         Device temperature [K]
     N : int
         Number of uniformly spaced grid points
-    boltz : bool
-        Use the Boltzmann (non-degenerate) approximation?
+    approx : str
+        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic bands
+        approximation. If 'parabolic', use the parabolic bands approximation.
+        If None, include Gamma-valley non-parabolicity.
 
     Returns
     -------
@@ -268,8 +270,7 @@ def poisson_eq(device, T=300., N=1000, boltz=False):
     Ei0 = flatband.Ei
     
     # define functions for calculating p, n, dp, and dn
-    print 'boltz', boltz
-    if boltz:
+    if approx == 'boltzmann':
         def p(u):
             Ev = Ev0 - u
             return boltz_p(0., Ev, Nv, Vt)
@@ -294,7 +295,7 @@ def poisson_eq(device, T=300., N=1000, boltz=False):
             return (dboltz_n(0., Ec_Gamma, Nc_Gamma, Vt) +
                     dboltz_n(0., Ec_L, Nc_L, Vt) + 
                     dboltz_n(0., Ec_X, Nc_X, Vt))
-    else:
+    elif approx == 'parabolic':
         def p(u):
             Ev = Ev0 - u
             return fermi_p(0., Ev, Nv, Vt)
@@ -319,6 +320,34 @@ def poisson_eq(device, T=300., N=1000, boltz=False):
             return (dfermi_n(0., Ec_Gamma, Nc_Gamma, Vt) +
                     dfermi_n(0., Ec_L, Nc_L, Vt) + 
                     dfermi_n(0., Ec_X, Nc_X, Vt))
+    elif approx is None:
+        alpha = numpy.array([m.nonparabolicity(T=T) for m in materials])
+        def p(u):
+            Ev = Ev0 - u
+            return fermi_p(0., Ev, Nv, Vt)
+        def n_Gamma(u):
+            Ec_Gamma = Ec_Gamma0 - u
+            return npfermi_n(0., Ec_Gamma, Nc_Gamma, alpha, Vt)
+        def n_L(u):
+            Ec_L = Ec_L0 - u
+            return fermi_n(0., Ec_L, Nc_L, Vt)
+        def n_X(u):
+            Ec_X = Ec_X0 - u
+            return fermi_n(0., Ec_X, Nc_X, Vt)
+        def n(u):
+            return n_Gamma(u)+n_L(u)+n_X(u)
+        def dp(u):
+            Ev = Ev0 - u
+            return dfermi_p(0., Ev, Nv, Vt)
+        def dn(u):
+            Ec_Gamma = Ec_Gamma0 - u
+            Ec_L = Ec_L0 - u
+            Ec_X = Ec_X0 - u
+            return (dnpfermi_n(0., Ec_Gamma, Nc_Gamma, alpha, Vt) +
+                    dfermi_n(0., Ec_L, Nc_L, Vt) + 
+                    dfermi_n(0., Ec_X, Nc_X, Vt))
+    else:
+        raise ValueError('Invalid value for approx: {}'.format(approx))
 
     # band edge potentials
 #     Delta_Egc = 0.  # TODO: include bandgap reduction
