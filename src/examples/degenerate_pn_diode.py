@@ -18,20 +18,35 @@
 #
 #############################################################################
 
+# Make sure we import the local obpds version
+import os
+import sys
+sys.path.insert(0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from obpds import *
 
-__all__ = ['Contact', 'OhmicContact', 'SchottkyContact']
+# Layers
+p = Layer(1*um, Material(InAs,  1e15/cm3))
+n = Layer(1*um, Material(InAs, -2e18/cm3))
 
+# Device
+d = TwoTerminalDevice(layers=[p, n])
 
-class Contact(object):
-    pass
+# Simulate and show the equilibrium band profile
+import matplotlib.pyplot as plt
+_, ax1 = plt.subplots()
+ax1.set_ymargin(0.05)
+ax1.set_ylabel('Energy (eV)')
+ax1.set_xlabel('Depth (nm)')
 
-class OhmicContact(Contact):
-    pass
+solution = d.get_equilibrium(boltz=False)
+x = solution.x*1e7 # nm
+ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
+ax1.plot(x, solution.Ec, 'b-', label='$E_c$')
+ax1.plot(x, solution.Ef, 'k--', label='$E_f$')
 
-class SchottkyContact(Contact):
-    '''
-    A Schottky contact that pins at the "universal pinning level",
-    which is approximately 4.9 eV below the vacuum level.
-    '''
-    def __init__(self, work_function=4.9):
-        self.work_function = work_function
+solution = d.get_equilibrium(boltz=True)
+ax1.plot(x, solution.Ev, 'r--')
+ax1.plot(x, solution.Ec, 'b--')
+
+plt.show()
