@@ -79,11 +79,9 @@ class Layer(object):
 
 class CompoundLayer(Layer):
     
-    def __init__(self, layers):
+    def __init__(self, layers=None):
         self._layers = []
-        if len(layers) < 1:
-            raise ValueError('There must be at least one layer.')
-        else:
+        if layers is not None:
             for layer in layers:
                 self.append(layer)
 
@@ -126,6 +124,8 @@ class CompoundLayer(Layer):
         x : float
             position (cm) between zero and the layer thickness
         '''
+        if len(self._layers) < 1:
+            raise ValueError('There must be at least one layer.')
         if x < 0. or x > self.get_thickness():
             raise ValueError('x not within range [{:g}, {:g}]'
                              ''.format(0., self.get_thickness()))
@@ -152,6 +152,8 @@ class CompoundLayer(Layer):
         T : float
             the temperature
         '''
+        if len(self._layers) < 1:
+            raise ValueError('There must be at least one layer.')
         x, Ev, Ec, Ei = [], [], [], []
         last_x = 0
         for layer in self:
