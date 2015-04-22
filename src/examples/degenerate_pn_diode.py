@@ -39,14 +39,16 @@ ax1.set_ymargin(0.05)
 ax1.set_ylabel('Energy (eV)')
 ax1.set_xlabel('Depth (nm)')
 
+solution = d.get_equilibrium(boltz=True)
+x = solution.x*1e7 # nm
+ax1.plot(x, solution.Ev, 'r--')
+ax1.plot(x, solution.Ec, 'b--', label='Boltzmann')
+
 solution = d.get_equilibrium(boltz=False)
 x = solution.x*1e7 # nm
-ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
-ax1.plot(x, solution.Ec, 'b-', label='$E_c$')
-ax1.plot(x, solution.Ef, 'k--', label='$E_f$')
+ax1.plot(x, solution.Ev, 'r-')
+ax1.plot(x, solution.Ec, 'b-', label='Fermi-Dirac')
+ax1.plot(x, solution.Ef, 'k--')
 
-solution = d.get_equilibrium(boltz=True)
-ax1.plot(x, solution.Ev, 'r--')
-ax1.plot(x, solution.Ec, 'b--')
-
+ax1.legend(loc='best')
 plt.show()
