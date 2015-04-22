@@ -222,15 +222,14 @@ k = 8.6173324e-5 # eV K**-1
 def poisson_eq(device, T=300., N=1000, boltz=False):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
-    equation for the given device under equilibrium conditions
-    at temperature, T.
+    equation for the given device under equilibrium conditions.
 
     Arguments
     ---------
     device : TwoTerminalDevice
-        device
+        Device
     T : float
-        Temperature [K]
+        Device temperature [K]
     N : int
         Number of uniformly spaced grid points
     boltz : bool
@@ -238,22 +237,8 @@ def poisson_eq(device, T=300., N=1000, boltz=False):
 
     Returns
     -------
-    x : vector of length N
-        Depth
-    Ev : vector of length N
-        Valance band energy [eV]
-    Ec : vector of length N
-        Conduction band energy [eV]
-    Ei : vector of length N
-        Intrinsic energy [eV]
-    p : vector of length N
-        Hole concentration [cm**-3]
-    n : vector of length N
-        Electron concentration [cm**-3]
-    Na : vector of length N
-        Ionized acceptor concentration [cm**-3]
-    Nd : vector of length N
-        Ionized donor concentration [cm**-3]
+    s : EquilibriumSolution
+        Equilibrium solution
     '''
     Vt = k*T  # eV
     flatband = device._get_flatband(T, N)
