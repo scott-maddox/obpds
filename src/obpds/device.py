@@ -122,12 +122,12 @@ class TwoTerminalDevice(object):
         else:
             return self._calc_flatband(T, N)
     
-    def _calc_equilibrium(self, T, N, boltz=False):
-        solution = poisson_eq(self, T=T, N=N, boltz=boltz)
-        self._equilibrium[(T, N, boltz)] = solution
+    def _calc_equilibrium(self, T, N, approx='parabolic'):
+        solution = poisson_eq(self, T=T, N=N, approx=approx)
+        self._equilibrium[(T, N, approx)] = solution
         return solution
     
-    def get_equilibrium(self, T=300., N=1000, boltz=False):
+    def get_equilibrium(self, T=300., N=1000, approx='parabolic'):
         '''
         Returns an `EquilibriumSolution` instance.
         
@@ -137,15 +137,17 @@ class TwoTerminalDevice(object):
             the temperature
         N : int
             the number of grid points
-        boltz : bool
-            Use the Boltzmann (non-degenerate) approximation?
+        approx : str
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation. If 'parabolic', use the parabolic bands
+            approximation. If None, include Gamma-valley non-parabolicity.
         '''
-        if (T, N, boltz) in self._equilibrium:
-            return self._equilibrium[(T, N, boltz)]
+        if (T, N, approx) in self._equilibrium:
+            return self._equilibrium[(T, N, approx)]
         else:
-            return self._calc_equilibrium(T, N, boltz)
+            return self._calc_equilibrium(T, N, approx)
 
-    def show_equilibrium(self, T=300., N=1000, boltz=False):
+    def show_equilibrium(self, T=300., N=1000, approx='parabolic'):
         '''
         Plot and show the band profile at equilibrium.
         
@@ -155,10 +157,12 @@ class TwoTerminalDevice(object):
             the temperature
         N : int
             the number of grid points
-        boltz : bool
-            Use the Boltzmann (non-degenerate) approximation?
+        approx : str
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation. If 'parabolic', use the parabolic bands
+            approximation. If None, include Gamma-valley non-parabolicity.
         '''
-        solution = self.get_equilibrium(T, N, boltz)
+        solution = self.get_equilibrium(T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
         _, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
@@ -179,7 +183,7 @@ class TwoTerminalDevice(object):
         ax2.set_xlabel('Depth (nm)')
         plt.show()
 
-    def save_equilibrium(self, path, show=False, T=300, N=1000, boltz=False):
+    def save_equilibrium(self, path, show=False, T=300, N=1000, approx='parabolic'):
         '''
         Save the bands at equilibrium.
         
@@ -193,12 +197,14 @@ class TwoTerminalDevice(object):
             the temperature
         N : int
             the number of grid points
-        boltz : bool
-            Use the Boltzmann (non-degenerate) approximation?
+        approx : str
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation. If 'parabolic', use the parabolic bands
+            approximation. If None, include Gamma-valley non-parabolicity.
         '''
         if show:
-            self.show_equilibrium(T, N, boltz)
-        s = self.get_equilibrium(T, N, boltz)
+            self.show_equilibrium(T, N, approx)
+        s = self.get_equilibrium(T, N, approx)
         with open(path, 'w') as f:
             f.write('x\tEv\tEc\tEi\tp\tn\tNa\tNd\n')
             for i in xrange(s.x.size):
