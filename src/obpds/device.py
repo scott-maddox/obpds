@@ -122,23 +122,14 @@ class TwoTerminalDevice(object):
         else:
             return self._calc_flatband(T, N)
     
-    def _calc_equilibrium(self, T, N):
-        solution = poisson_eq(self, T=T, N=N)
-        self._equilibrium[(T, N)] = solution
+    def _calc_equilibrium(self, T, N, boltz=False):
+        solution = poisson_eq(self, T=T, N=N, boltz=boltz)
+        self._equilibrium[(T, N, boltz)] = solution
         return solution
     
-    def get_equilibrium(self, T=300., N=1000):
+    def get_equilibrium(self, T=300., N=1000, boltz=False):
         '''
         Returns an `EquilibriumSolution` instance.
-        '''
-        if (T, N) in self._equilibrium:
-            return self._equilibrium[(T, N)]
-        else:
-            return self._calc_equilibrium(T, N)
-
-    def show_equilibrium(self, T=300., N=1000):
-        '''
-        Show a plot of the band profile at equilibrium.
         
         Arguments
         ---------
@@ -146,8 +137,28 @@ class TwoTerminalDevice(object):
             the temperature
         N : int
             the number of grid points
+        boltz : bool
+            Use the Boltzmann (non-degenerate) approximation?
         '''
-        solution = self.get_equilibrium(T, N)
+        if (T, N, boltz) in self._equilibrium:
+            return self._equilibrium[(T, N, boltz)]
+        else:
+            return self._calc_equilibrium(T, N, boltz)
+
+    def show_equilibrium(self, T=300., N=1000, boltz=False):
+        '''
+        Plot and show the band profile at equilibrium.
+        
+        Arguments
+        ---------
+        T : float
+            the temperature
+        N : int
+            the number of grid points
+        boltz : bool
+            Use the Boltzmann (non-degenerate) approximation?
+        '''
+        solution = self.get_equilibrium(T, N, boltz)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
         _, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
@@ -168,7 +179,7 @@ class TwoTerminalDevice(object):
         ax2.set_xlabel('Depth (nm)')
         plt.show()
 
-    def save_equilibrium(self, path, show=False, T=300, N=1000):
+    def save_equilibrium(self, path, show=False, T=300, N=1000, boltz=False):
         '''
         Save the bands at equilibrium.
         
@@ -182,13 +193,15 @@ class TwoTerminalDevice(object):
             the temperature
         N : int
             the number of grid points
+        boltz : bool
+            Use the Boltzmann (non-degenerate) approximation?
         '''
         if show:
-            self.show_equilibrium(T=T, N=N)
-        x, Ev, Ec, Ei, p, n, Na, Nd = poisson_eq(self, T=T, N=N)
+            self.show_equilibrium(T, N, boltz)
+        s = self.get_equilibrium(T, N, boltz)
         with open(path, 'w') as f:
             f.write('x\tEv\tEc\tEi\tp\tn\tNa\tNd\n')
-            for i in xrange(x.size):
+            for i in xrange(s.x.size):
                 f.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'
-                        ''.format(x[i], Ev[i], Ec[i], Ei[i],
-                                  p[i], n[i], Na[i], Nd[i]))
+                        ''.format(s.x[i], s.Ev[i], s.Ec[i], s.Ei[i],
+                                  s.p[i], s.n[i], s.Na[i], s.Nd[i]))
