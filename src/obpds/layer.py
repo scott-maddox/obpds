@@ -70,7 +70,7 @@ class Layer(object):
         x = (0., self.get_thickness())
         VBO = self._material.VBO(T=T)
         CBO = self._material.CBO(T=T)
-        ILO = VBO + self.material.Ei(T=T)
+        ILO = VBO + self._material.Ei(T=T)
         return x, (VBO, VBO), (CBO, CBO), (ILO, ILO)
 
     def write_AMBER_recipe(self, fobj):
