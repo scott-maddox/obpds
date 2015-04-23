@@ -47,12 +47,12 @@ ax1.plot(x, solution.Ec, 'b:', lw=2, label='Parabolic Boltzmann')
 solution = d.get_equilibrium(approx='parabolic')
 x = solution.x*1e7 # nm
 ax1.plot(x, solution.Ev, 'r--')
-ax1.plot(x, solution.Ec, 'b--', lw=2, label='Parabolic Fermi-Dirac')
+ax1.plot(x, solution.Ec, 'b--', lw=2, label='Parabolic')
 
-solution = d.get_equilibrium(approx=None)
+solution = d.get_equilibrium(approx='kane')
 x = solution.x*1e7 # nm
 ax1.plot(x, solution.Ev, 'r-')
-ax1.plot(x, solution.Ec, 'b-', label='Non-parabolic Fermi-Dirac')
+ax1.plot(x, solution.Ec, 'b-', label='Non-parabolic Kane')
 ax1.plot(x, solution.Ef, 'k--')
 
 ax1.legend(loc='best')
