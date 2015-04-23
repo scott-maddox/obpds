@@ -28,7 +28,7 @@ Fermi-Dirac integrals
 import numpy
 from numpy import exp, sqrt, log
 from scipy.optimize import newton
-from fdint import _fd1h, _dfd1h
+from fdint import fdk, dfdk
 
 
 __all__ = ['ifd1h']
@@ -48,8 +48,8 @@ def _ifd1h(nu):
     eta : float
         normalized Fermi energy, (phi_n-Ec)/Vt
     '''
-    f = lambda eta: _fd1h(eta) - nu
-    fprime = lambda eta: _dfd1h(eta)
+    f = lambda eta: fdk(0.5,eta) - nu
+    fprime = lambda eta: dfdk(0.5,eta)
     if nu < 10:
         guess = log(nu)
     else:

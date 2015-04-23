@@ -19,7 +19,7 @@
 #############################################################################
 import numpy
 from numpy import exp, log, sqrt, pi
-from fdint import *
+from fdint import fdk, dfdk
 from ifdint import ifd1h
 
 
@@ -57,11 +57,11 @@ def dboltz_n(phi_n, Ec, Nc, Vt):
 assert 2/sqrt(pi) == 1.1283791670955126
 def fermi_p(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return fd1h(phi)*(Nv*1.1283791670955126)
+    return fdk(0.5,phi)*(Nv*1.1283791670955126)
 
 def fermi_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return fd1h(phi)*(Nc*1.1283791670955126)
+    return fdk(0.5,phi)*(Nc*1.1283791670955126)
 
 def ifermi_p(p, Ev, Nv, Vt):
     return Ev - ifd1h(p / (Nv*1.1283791670955126))*Vt
@@ -71,11 +71,11 @@ def ifermi_n(n, Ec, Nc, Vt):
 
 def dfermi_p(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return -dfd1h(phi)*(Nv*1.1283791670955126)/Vt
+    return -0.5*fdk(-0.5,phi)*(Nv*1.1283791670955126)/Vt
 
 def dfermi_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return dfd1h(phi)*(Nc*1.1283791670955126)/Vt
+    return 0.5*fdk(-0.5,phi)*(Nc*1.1283791670955126)/Vt
 
 def _npfermi(phi, alpha):
     '''
@@ -85,17 +85,17 @@ def _npfermi(phi, alpha):
     '''
     if phi < 20:
         # taylor series approximation around alpha = 0
-        return (fd1h(phi)+
-                 alpha*(2.5*fd3h(phi)+
-                 alpha*(0.875*fd5h(phi)+
-                 alpha*(-0.1875*fd7h(phi)+
-                 alpha*(0.0859375*fd9h(phi)+
-                 alpha*(-0.05078125*fd11h(phi)+
-                 alpha*(0.0341796875*fd13h(phi)+
-                 alpha*(-0.02490234375*fd15h(phi)+
-                 alpha*(0.019134521484375*fd17h(phi)+
-                 alpha*(-0.0152740478515625*fd19h(phi)+
-                 alpha*(0.012546539306640625*fd21h(phi)
+        return (fdk(0.5,phi)+
+                 alpha*(2.5*fdk(1.5,phi)+
+                 alpha*(0.875*fdk(2.5,phi)+
+                 alpha*(-0.1875*fdk(3.5,phi)+
+                 alpha*(0.0859375*fdk(4.5,phi)+
+                 alpha*(-0.05078125*fdk(5.5,phi)+
+                 alpha*(0.0341796875*fdk(6.5,phi)+
+                 alpha*(-0.02490234375*fdk(7.5,phi)+
+                 alpha*(0.019134521484375*fdk(8.5,phi)+
+                 alpha*(-0.0152740478515625*fdk(9.5,phi)+
+                 alpha*(0.012546539306640625*fdk(10.5,phi)
                         )))))))))))
     else:
         # sommerfeld approximation for phi -> inf
@@ -110,17 +110,17 @@ def _dnpfermi(phi, alpha):
     '''
     if phi < 20:
         # taylor series approximation around alpha = 0
-        return (dfd1h(phi)+
-                 alpha*(2.5*dfd3h(phi)+
-                 alpha*(0.875*dfd5h(phi)+
-                 alpha*(-0.1875*dfd7h(phi)+
-                 alpha*(0.0859375*dfd9h(phi)+
-                 alpha*(-0.05078125*dfd11h(phi)+
-                 alpha*(0.0341796875*dfd13h(phi)+
-                 alpha*(-0.02490234375*dfd15h(phi)+
-                 alpha*(0.019134521484375*dfd17h(phi)+
-                 alpha*(-0.0152740478515625*dfd19h(phi)+
-                 alpha*(0.012546539306640625*dfd21h(phi)
+        return (dfdk(0.5,phi)+
+                 alpha*(2.5*dfdk(1.5,phi)+
+                 alpha*(0.875*dfdk(2.5,phi)+
+                 alpha*(-0.1875*dfdk(3.5,phi)+
+                 alpha*(0.0859375*dfdk(4.5,phi)+
+                 alpha*(-0.05078125*dfdk(5.5,phi)+
+                 alpha*(0.0341796875*dfdk(6.5,phi)+
+                 alpha*(-0.02490234375*dfdk(7.5,phi)+
+                 alpha*(0.019134521484375*dfdk(8.5,phi)+
+                 alpha*(-0.0152740478515625*dfdk(9.5,phi)+
+                 alpha*(0.012546539306640625*dfdk(10.5,phi)
                         )))))))))))
     else:
         # sommerfeld approximation for phi -> inf
@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     # parabolic
     phi = numpy.linspace(-30, 100, 1000)
-    ax.semilogy(phi, fd1h(phi), 'r')
+    ax.semilogy(phi, fdk(0.5,phi), 'r')
     from scipy.integrate import quad
     def _num_fd1h(phi):
         result = quad(lambda x: sqrt(x)/(1.+exp(x-phi)), 0., 100.)[0]
@@ -181,12 +181,12 @@ if __name__ == "__main__":
     ax.semilogy(phi, num_npfermi(phi, alpha), 'g--', lw=2)
 
     phi = -5
-    print fd1h(phi)/_num_fermi(phi, alpha)
+    print fdk(0.5,phi)/_num_fermi(phi, alpha)
     print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
     phi = 5
-    print fd1h(phi)/_num_fermi(phi, alpha)
+    print fdk(0.5,phi)/_num_fermi(phi, alpha)
     print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
     phi = 30
-    print fd1h(phi)/_num_fermi(phi, alpha)
+    print fdk(0.5,phi)/_num_fermi(phi, alpha)
     print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
     plt.show()
