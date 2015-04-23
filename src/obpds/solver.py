@@ -228,14 +228,15 @@ def poisson_eq(device, T=300., N=1000, approx='parabolic'):
     ---------
     device : TwoTerminalDevice
         Device
-    T : float
-        Device temperature [K]
-    N : int
-        Number of uniformly spaced grid points
-    approx : str
-        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic bands
-        approximation. If 'parabolic', use the parabolic bands approximation.
-        If None, include Gamma-valley non-parabolicity.
+    T : float (default=300.)
+        Device temperature
+    N : int (default=1000)
+        Number of grid points
+    approx : str (default='parabolic')
+        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+        bands approximation (fastest). If 'parabolic', use the parabolic
+        bands approximation (fast). If 'kane', include Gamma-valley
+        non-parabolicity under the k.p Kane approximation (slow).
 
     Returns
     -------
@@ -320,7 +321,7 @@ def poisson_eq(device, T=300., N=1000, approx='parabolic'):
             return (dfermi_n(0., Ec_Gamma, Nc_Gamma, Vt) +
                     dfermi_n(0., Ec_L, Nc_L, Vt) + 
                     dfermi_n(0., Ec_X, Nc_X, Vt))
-    elif approx is None:
+    elif approx == 'kane':
         alpha = numpy.array([m.nonparabolicity(T=T) for m in materials])
         def p(u):
             Ev = Ev0 - u

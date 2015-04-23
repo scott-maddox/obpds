@@ -133,14 +133,15 @@ class TwoTerminalDevice(object):
         
         Arguments
         ---------
-        T : float
-            the temperature
-        N : int
-            the number of grid points
-        approx : str
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
-            bands approximation. If 'parabolic', use the parabolic bands
-            approximation. If None, include Gamma-valley non-parabolicity.
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
         '''
         if (T, N, approx) in self._equilibrium:
             return self._equilibrium[(T, N, approx)]
@@ -153,14 +154,15 @@ class TwoTerminalDevice(object):
         
         Arguments
         ---------
-        T : float
-            the temperature
-        N : int
-            the number of grid points
-        approx : str
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
-            bands approximation. If 'parabolic', use the parabolic bands
-            approximation. If None, include Gamma-valley non-parabolicity.
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
         '''
         solution = self.get_equilibrium(T, N, approx)
         x = solution.x*1e7 # nm
@@ -193,14 +195,15 @@ class TwoTerminalDevice(object):
             the file path
         show : bool
             shows the bands if True
-        T : float
-            the temperature
-        N : int
-            the number of grid points
-        approx : str
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
-            bands approximation. If 'parabolic', use the parabolic bands
-            approximation. If None, include Gamma-valley non-parabolicity.
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
         '''
         if show:
             self.show_equilibrium(T, N, approx)
