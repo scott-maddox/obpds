@@ -93,6 +93,12 @@ def newton(G, A, u0, rtol=1e-8, atol=1e-4, tau=0.5, max_iter=100):
         logger.debug('duk = %s', duk)
 #         print 'duk', duk
 
+        aerr = numpy.abs(duk).max()
+        logger.debug('aerr = {}'.format(aerr))
+        if aerr < atol:
+            logger.info('converged after {} iterations'.format(k))
+            return NewtonResult(value=uk + duk, num_iter=k, converged=True)
+        
         while True:
             # Step 3. Calculate the next guess.
             ukp = uk + sk*duk
@@ -114,9 +120,8 @@ def newton(G, A, u0, rtol=1e-8, atol=1e-4, tau=0.5, max_iter=100):
 
         # Step 5. Quit if converged; iterate if not.
         rerr = numpy.abs(duk/ukp).max()
-        aerr = numpy.abs(duk).max()
-        logger.debug('rerr = {}, aerr = {}'.format(rerr, aerr))
-        if rerr < rtol or aerr < atol:
+        logger.debug('rerr = {}'.format(rerr))
+        if rerr < rtol:
             logger.info('converged after {} iterations'.format(k))
             return NewtonResult(value=ukp, num_iter=k, converged=True)
         else:
