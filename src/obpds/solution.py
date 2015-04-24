@@ -27,6 +27,9 @@ __all__ = ['Solution', 'EquilibriumSolution']
 class Solution(object):
     pass
 
+class ParametersSolution(Solution):
+    pass
+
 class FlatbandSolution(Solution):
     def __init__(self, T, N, x, Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei):
         self.T = T
