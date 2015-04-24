@@ -254,22 +254,35 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
             elif phi_ni != -numpy.inf:
                 psi0[i] = flatband.Ei[i] - phi_ni
                 residual[i] = -parameters.ni[i]
-            else:
+            elif phi_pi != numpy.inf:
                 psi0[i] = flatband.Ei[i] - phi_pi
                 residual[i] = parameters.ni[i]
+            else:
+                psi0[i] = flatband.Ei[i]
     logger.debug('psi0 before newton = %s', str(psi0))
     ## Refine with newton method, in case satallite valleys or
     ## band non-parabolicity are significant.
 #     global last_psi
 #     last_psi = psi0
+    zeros = numpy.zeros(N)
+    ones = numpy.empty(N)
+    ones.fill(1.)
     def G0(psi):
 #         global last_psi
 #         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
 #         last_psi = psi
-        rho = p(psi)-n(psi)+parameters.Nnet
-        return rho-residual
+        rho = p(psi)-n(psi)+parameters.Nnet-residual
+        # replace nan's with 0.
+        rho = numpy.where(-numpy.isnan(rho), rho, zeros)
+        logger.debug('rho = %s', rho)
+        return rho
     def A0(psi):
         df_dpsi = dp(psi) - dn(psi)
+        # replace 0's with 1.
+        df_dpsi = numpy.where((df_dpsi != 0.), df_dpsi, ones)
+        # replace nan's with 1.
+        df_dpsi = numpy.where(-numpy.isnan(df_dpsi), df_dpsi, ones)
+        logger.debug('df_dpsi = %s', df_dpsi)
         return spdiags(df_dpsi, [0], N, N, format='csr')
     result = newton(G0, A0, psi0)
     psi0 = result.value  # eV
@@ -346,6 +359,9 @@ def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
     else:
         raise RuntimeError('unexpected execution path')
 
+    zeros = numpy.zeros(N)
+    ones = numpy.empty(N)
+    ones.fill(1.)
 #     global last_psi
 #     last_psi = psi0
     def G(psi):
@@ -353,10 +369,16 @@ def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
 #         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
 #         last_psi = psi
         f = (p(psi)-n(psi)+parameters.Nnet)*q_over_eps
+        # replace nan's with 0.
+        f = numpy.where(-numpy.isnan(f), f, zeros)
+        logger.debug('f = %s', f)
         _Fpsi = Fpsi(psi, f, dx, a=a, b=b)
         return _Fpsi
     def A(psi):
         df_dpsi = (dp(psi) - dn(psi))*q_over_eps
+        # replace nan's with 1.
+        df_dpsi = numpy.where(-numpy.isnan(df_dpsi), df_dpsi, ones)
+        logger.debug('df_dpsi = %s', df_dpsi)
         return jacobian__Fpsi__psi(df_dpsi, dx)
     
     result = newton(G, A, psi0)
