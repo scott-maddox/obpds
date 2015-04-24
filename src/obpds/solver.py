@@ -221,36 +221,45 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
     parameters = device._get_parameters(T, N)
     flatband = device._get_flatband(T, N)
     
+    # get functions for calculating p, n, dp, and dn
+    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(device,
+                                                          phi_p, phi_n,
+                                                          T, N,
+                                                          approx)
+    
     # calculate other parameters
     Vt = k*T  # eV
 
     ## Begin by setting the majority carrier density to the net doping density.
     psi0 = numpy.zeros(N)
+    residual = numpy.zeros(N)
     for i in xrange(N):
+        try:
+            phi_pi = phi_p[i]
+            phi_ni = phi_n[i]
+        except:
+            phi_pi = phi_p
+            phi_ni = phi_n
         if parameters.Nnet[i] < 0.:
             p0 = -parameters.Nnet[i]
             phi_p0 = ifermi_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
-            try:
-                psi0[i] = phi_p0-phi_p[i]
-            except:
-                psi0[i] = phi_p0-phi_p
+            psi0[i] = phi_p0-phi_pi
         elif parameters.Nnet[i] > 0.:
             n0 = parameters.Nnet[i]
             phi_n0 = ifermi_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
-            try:
-                psi0[i] = phi_n0-phi_n[i]
-            except:
-                psi0[i] = phi_n0-phi_n
+            psi0[i] = phi_n0-phi_ni
         else:
-            psi0[i] = flatband.Ei[i]
+            if phi_pi != numpy.inf and phi_ni != -numpy.inf:
+                psi0[i] = flatband.Ei[i] - (phi_pi+phi_ni)/2
+            elif phi_ni != -numpy.inf:
+                psi0[i] = flatband.Ei[i] - phi_ni
+                residual[i] = -parameters.ni[i]
+            else:
+                psi0[i] = flatband.Ei[i] - phi_pi
+                residual[i] = parameters.ni[i]
     logger.debug('psi0 before newton = %s', str(psi0))
     ## Refine with newton method, in case satallite valleys or
     ## band non-parabolicity are significant.
-    ### get functions for calculating p, n, dp, and dn
-    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(device,
-                                                          phi_p, phi_n,
-                                                          T, N,
-                                                          approx)
 #     global last_psi
 #     last_psi = psi0
     def G0(psi):
@@ -258,7 +267,7 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
 #         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
 #         last_psi = psi
         rho = p(psi)-n(psi)+parameters.Nnet
-        return rho
+        return rho-residual
     def A0(psi):
         df_dpsi = dp(psi) - dn(psi)
         return spdiags(df_dpsi, [0], N, N, format='csr')
