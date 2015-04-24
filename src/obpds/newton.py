@@ -80,18 +80,13 @@ def newton(G, A, u0, rtol=1e-8, atol=1e-4, tau=0.5, max_iter=100):
     sk = 1. # damping parameter
     uk = u0
     Ak = A(uk)
-#     print 'Ak', Ak
     Gk = G(uk)
-#     print 'Gk', Gk
     Gk_norm = norm(Gk)
 
     for k in xrange(1, max_iter+1):
         # Step 2. Calculate the delta.
-        logger.debug('Gk = %s', Gk)
-        logger.debug('Ak = %s', Ak)
         duk = spsolve(Ak, -Gk, use_umfpack=True)
         logger.debug('duk = %s', duk)
-#         print 'duk', duk
 
         aerr = numpy.abs(duk).max()
         logger.debug('aerr = {}'.format(aerr))
