@@ -18,6 +18,9 @@
 #
 #############################################################################
 
+import logging
+logger = logging.getLogger(__name__)
+
 import numpy
 from numpy import exp, log, sqrt
 from numpy.linalg import norm
@@ -111,7 +114,7 @@ def newton(G, A, u0, atol=1e-4, tau=0.5, max_iter=100):
         duk_max = numpy.abs(duk).max()
 #         print duk_max, atol
         if duk_max < atol:
-            print 'newton_poisson converged after {} iterations'.format(k)
+            logger.info('newton converged after {} iterations'.format(k))
             return NewtonResult(value=ukp, num_iter=k, converged=True)
         else:
             uk = ukp
@@ -121,7 +124,7 @@ def newton(G, A, u0, atol=1e-4, tau=0.5, max_iter=100):
             continue  # go to Step 2.
 
     # Failed to converge, but return what we have.
-    print 'WARNING: newton_poisson failed to converge after {} iterations'.format(k)
+    logger.warn('newton failed to converge after {} iterations'.format(k))
     return NewtonResult(value=ukp, num_iter=k, converged=False)
 
 
