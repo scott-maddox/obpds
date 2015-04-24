@@ -28,21 +28,21 @@ sys.path.insert(0,
 from obpds import *
 
 # Layers
-p = Layer(1*um, Material(GaAs,  1e17/cm3))
 n = Layer(1*um, Material(GaAs, -1e17/cm3))
+p = Layer(1*um, Material(GaAs,  1e17/cm3))
 
 # Device
-d = TwoTerminalDevice(layers=[p, n],
-                      Fp='left',
-                      Fn='right')
+d = TwoTerminalDevice(layers=[n, p],
+                      Fp='right',
+                      Fn='left')
 
 # Simulate and show the equilibrium band profile using the default method.
 d.show_equilibrium()
 
 # Simulate and show the band profile at 0.5 V forward bias under the zero
 # current approximation.
-d.show_zero_current(V=0.5)
+d.show_zero_current(V=-0.5)
 
 # Simulate and show the band profile at 0.5 V reverse bias under the zero
 # current approximation.
-d.show_zero_current(V=-0.5)
+d.show_zero_current(V=0.5)

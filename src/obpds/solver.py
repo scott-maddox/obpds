@@ -23,122 +23,23 @@ logger = logging.getLogger(__name__)
 
 import numpy
 from numpy import exp, log, sqrt
-from numpy.linalg import norm
-from scipy.sparse.linalg import spsolve
 from scipy.sparse import csr_matrix, spdiags
 
-from .solution import EquilibriumSolution
+from .newton import newton
+from .solution import ZeroCurrentSolution, EquilibriumSolution
 from .contact import OhmicContact, SchottkyContact
-
-class NewtonResult(object):
-    def __init__(self, value, num_iter, converged):
-        self.value = value
-        self.num_iter = num_iter
-        self.converged = converged
-
-def newton(G, A, u0, atol=1e-4, tau=0.5, max_iter=100):
-    '''
-    Uses Newton's method to solve a system of non-linear equations,
-
-        G(U) = 0,
-
-    where the unkown vector, U, corresponds to the values of the finite
-    element or volume solution, u_h, at the node points. The Jacobian matrix,
-
-        A(U) = dG(U)/dU,
-    
-    is a sparse stiffness matrix corresponding to a linear elliptic
-    boundary value problem (linearized about U). The Newton procedure used
-    is described in the user manual.
-
-    Arguments
-    ---------
-    G : callable
-        Accepts the current guess, uk.
-        Returns the residual vector of length N at uk.
-    A : callable
-        Accepts the current guess, uk.
-        Returns the NxN Jacobian matrix linearized about uk.
-    u0 : vector of length N
-        Initial guess of the unkown vector, U.
-    atol : float (default: 1e-4)
-        Absolute tolerance for termination.
-    tau : float (default: 0.5)
-        Decrease parameter, used in the algorithm to stabilize the Newton
-        iteration. The value should be between 0 and 1. Values closer to 1
-        increase stability, but slow down convergence.
-    max_iter : int (default: 100)
-        Maximum number of iterations.
-
-    Returns
-    -------
-    result.value : vector of length N
-        The unkown vector, U.
-    result.num_iter: int
-        The number of iterations used.
-    result.converged: 
-        True if the solution converged, False if it did not.
-    '''
-    # Step 1. Calculate the initial values.
-    sk = 1. # damping parameter
-    uk = u0
-    Ak = A(uk)
-    Gk = G(uk)
-    Gk_norm = norm(Gk)
-
-    for k in xrange(1, max_iter+1):
-        # Step 2. Calculate the delta.
-        duk = spsolve(Ak, -Gk, use_umfpack=True)
-#         print 'duk', duk
-
-        while True:
-            # Step 3. Calculate the next guess.
-            ukp = uk + sk*duk
-            assert not numpy.isnan(ukp).any()
-
-            Gkp = G(ukp)
-            Gkp_norm = norm(Gkp)
-            xi_kp = Gkp_norm / Gk_norm
-            
-            # Step 4. Adjust the damping parameter.
-            if 1 - xi_kp < tau * sk:
-                sk /= 2.
-#                 print 'decreasing sk to {}'.format(sk)
-                continue  # go to Step 3.
-            else:
-                sk = sk/(sk+(1.-sk)*xi_kp/2.)
-#                 print 'increasing sk to {}'.format(sk)
-                break  # go to Step 5.
-
-        # Step 5. Quit if converged; iterate if not.
-        duk_max = numpy.abs(duk).max()
-#         print duk_max, atol
-        if duk_max < atol:
-            logger.info('newton converged after {} iterations'.format(k))
-            return NewtonResult(value=ukp, num_iter=k, converged=True)
-        else:
-            uk = ukp
-            Ak = A(uk)
-            Gk = Gkp
-            Gk_norm = Gkp_norm
-            continue  # go to Step 2.
-
-    # Failed to converge, but return what we have.
-    logger.warn('newton failed to converge after {} iterations'.format(k))
-    return NewtonResult(value=ukp, num_iter=k, converged=False)
-
 
 #TODO: shouldn't this depend on the gradient of eps_r?
 def Fpsi(psi, f, dx, a, b):
     '''
     Used to solve the one-dimensional electrostatic Poisson equation,
 
-        u'' = -f,
+        psi'' = -f,
 
     under Dirichlet (fixed potential) boundary conditions:
 
-        u[0] = a
-        u[-1] = b
+        psi[0] = a
+        psi[-1] = b
 
     Arguments
     ---------
@@ -167,21 +68,21 @@ def Fpsi(psi, f, dx, a, b):
     B[-1] = psi[-1] - b
     return B
 
-def jacobian__Fpsi__psi(df_du, dx):
+def jacobian__Fpsi__psi(df_dpsi, dx):
     '''
     Used to solve the one-dimensional electrostatic Poisson equation,
 
-        u'' = -f,
+        psi'' = -f,
 
     under Dirichlet (fixed potential) boundary conditions:
 
-        u[0] = a
-        u[-1] = b
+        psi[0] = a
+        psi[-1] = b
 
     Arguments
     ---------
-    df_du : vector of length N
-        derivative of the source term with respect to u [V cm**-3]
+    df_dpsi : vector of length N
+        derivative of the source term with respect to psi [V cm**-3]
     dx : float
         grid spacing [cm]
 
@@ -190,7 +91,7 @@ def jacobian__Fpsi__psi(df_du, dx):
     jac__Fpsi__psi : square matrix of width/height N
         the Jacobian matrix
     '''
-    N = df_du.size
+    N = df_dpsi.size
     dx2 = dx**2
     data = []
     rows = []
@@ -203,7 +104,7 @@ def jacobian__Fpsi__psi(df_du, dx):
     # The interior matrix elements
     for i in xrange(1, N-1):
         rows.append(i); cols.append(i-1); data.append(1)
-        rows.append(i); cols.append( i ); data.append(-2 + df_du[i]*dx2)
+        rows.append(i); cols.append( i ); data.append(-2 + df_dpsi[i]*dx2)
         rows.append(i); cols.append(i+1); data.append(1)
 
     # Dirichlet boundary condition
@@ -222,6 +123,272 @@ q = 1.602176565e-19 # C
 eps0 = 8.854187817620e-14 # C V**-1 cm**-1
 # Boltzmann constant
 k = 8.6173324e-5 # eV K**-1
+
+def get_fermi_functions(device, phi_p, phi_n, T=300., N=1000,
+                        approx='parabolic'):
+    # get materials and device parameters
+    parameters = device._get_parameters(T, N)
+    flatband = device._get_flatband(T, N)
+    
+    # calculate other parameters
+    Vt = k*T  # eV
+    
+    # define functions for calculating p, n, dp, and dn
+    if approx == 'boltzmann':
+        def p(psi):
+            Ev = flatband.Ev - psi
+            return boltz_p(phi_p, Ev, parameters.Nv, Vt)
+        def n_Gamma(psi):
+            Ec_Gamma = flatband.Ec_Gamma - psi
+            return boltz_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt)
+        def n_L(psi):
+            Ec_L = flatband.Ec_L - psi
+            return boltz_n(phi_n, Ec_L, parameters.Nc_L, Vt)
+        def n_X(psi):
+            Ec_X = flatband.Ec_X - psi
+            return boltz_n(phi_n, Ec_X, parameters.Nc_X, Vt)
+        def n(psi):
+            return n_Gamma(psi)+n_L(psi)+n_X(psi)
+        def dp(psi):
+            Ev = flatband.Ev - psi
+            return dboltz_p(phi_p, Ev, parameters.Nv, Vt)
+        def dn(psi):
+            Ec_Gamma = flatband.Ec_Gamma - psi
+            Ec_L = flatband.Ec_L - psi
+            Ec_X = flatband.Ec_X - psi
+            return (dboltz_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt) +
+                    dboltz_n(phi_n, Ec_L, parameters.Nc_L, Vt) + 
+                    dboltz_n(phi_n, Ec_X, parameters.Nc_X, Vt))
+    elif approx == 'parabolic':
+        def p(psi):
+            Ev = flatband.Ev - psi
+            return fermi_p(phi_p, Ev, parameters.Nv, Vt)
+        def n_Gamma(psi):
+            Ec_Gamma = flatband.Ec_Gamma - psi
+            return fermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt)
+        def n_L(psi):
+            Ec_L = flatband.Ec_L - psi
+            return fermi_n(phi_n, Ec_L, parameters.Nc_L, Vt)
+        def n_X(psi):
+            Ec_X = flatband.Ec_X - psi
+            return fermi_n(phi_n, Ec_X, parameters.Nc_X, Vt)
+        def n(psi):
+            return n_Gamma(psi)+n_L(psi)+n_X(psi)
+        def dp(psi):
+            Ev = flatband.Ev - psi
+            return dfermi_p(phi_p, Ev, parameters.Nv, Vt)
+        def dn(psi):
+            Ec_Gamma = flatband.Ec_Gamma - psi
+            Ec_L = flatband.Ec_L - psi
+            Ec_X = flatband.Ec_X - psi
+            return (dfermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt) +
+                    dfermi_n(phi_n, Ec_L, parameters.Nc_L, Vt) + 
+                    dfermi_n(phi_n, Ec_X, parameters.Nc_X, Vt))
+    elif approx == 'kane':
+        def p(psi):
+            Ev = flatband.Ev - psi
+            return fermi_p(phi_p, Ev, parameters.Nv, Vt)
+        def n_Gamma(psi):
+            Ec_Gamma = flatband.Ec_Gamma - psi
+            return npfermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma,
+                             parameters.nonparabolicity, Vt)
+        def n_L(psi):
+            Ec_L = flatband.Ec_L - psi
+            return fermi_n(phi_n, Ec_L, parameters.Nc_L, Vt)
+        def n_X(psi):
+            Ec_X = flatband.Ec_X - psi
+            return fermi_n(phi_n, Ec_X, parameters.Nc_X, Vt)
+        def n(psi):
+            return n_Gamma(psi)+n_L(psi)+n_X(psi)
+        def dp(psi):
+            Ev = flatband.Ev - psi
+            return dfermi_p(phi_p, Ev, parameters.Nv, Vt)
+        def dn(psi):
+            Ec_Gamma = flatband.Ec_Gamma - psi
+            Ec_L = flatband.Ec_L - psi
+            Ec_X = flatband.Ec_X - psi
+            return (dnpfermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma,
+                               parameters.nonparabolicity, Vt) +
+                    dfermi_n(phi_n, Ec_L, parameters.Nc_L, Vt) + 
+                    dfermi_n(phi_n, Ec_X, parameters.Nc_X, Vt))
+    else:
+        raise ValueError('Invalid value for approx: {}'.format(approx))
+    return p, n_Gamma, n_X, n_L, n, dp, dn
+
+def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
+                      approx='parabolic'):
+    # get materials and device parameters
+    parameters = device._get_parameters(T, N)
+    flatband = device._get_flatband(T, N)
+    
+    # get functions for calculating p, n, dp, and dn
+    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(device,
+                                                          phi_p, phi_n,
+                                                          T, N,
+                                                          approx)
+    
+    # calculate other parameters
+    Vt = k*T  # eV
+
+    ## Begin by setting the majority carrier density to the net doping density.
+    psi0 = numpy.zeros(N)
+    residual = numpy.zeros(N)
+    for i in xrange(N):
+        try:
+            phi_pi = phi_p[i]
+            phi_ni = phi_n[i]
+        except:
+            phi_pi = phi_p
+            phi_ni = phi_n
+        if parameters.Nnet[i] < 0.:
+            p0 = -parameters.Nnet[i]
+            phi_p0 = ifermi_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
+            psi0[i] = phi_p0-phi_pi
+        elif parameters.Nnet[i] > 0.:
+            n0 = parameters.Nnet[i]
+            phi_n0 = ifermi_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
+            psi0[i] = phi_n0-phi_ni
+        else:
+            if phi_pi != numpy.inf and phi_ni != -numpy.inf:
+                psi0[i] = flatband.Ei[i] - (phi_pi+phi_ni)/2
+            elif phi_ni != -numpy.inf:
+                psi0[i] = flatband.Ei[i] - phi_ni
+                residual[i] = -parameters.ni[i]
+            else:
+                psi0[i] = flatband.Ei[i] - phi_pi
+                residual[i] = parameters.ni[i]
+    logger.debug('psi0 before newton = %s', str(psi0))
+    ## Refine with newton method, in case satallite valleys or
+    ## band non-parabolicity are significant.
+#     global last_psi
+#     last_psi = psi0
+    def G0(psi):
+#         global last_psi
+#         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
+#         last_psi = psi
+        rho = p(psi)-n(psi)+parameters.Nnet
+        return rho-residual
+    def A0(psi):
+        df_dpsi = dp(psi) - dn(psi)
+        return spdiags(df_dpsi, [0], N, N, format='csr')
+    result = newton(G0, A0, psi0)
+    psi0 = result.value  # eV
+    logger.debug('psi0 = %s', str(psi0))
+    assert not numpy.isnan(psi0).any()
+    return psi0
+
+def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
+                          approx='parabolic'):
+    '''
+    Uses Newton's method to solve the self-consistent electrostatic Poisson
+    equation for the given device under equilibrium conditions.
+
+    Arguments
+    ---------
+    device : TwoTerminalDevice
+        Device
+    phi_p : float or ndarray
+        hole quasi-Fermi level at each grid point
+    phi_n : float or ndarray
+        electron quasi-Fermi level at each grid point
+    T : float (default=300.)
+        Device temperature
+    N : int (default=1000)
+        Number of grid points
+    approx : str (default='parabolic')
+        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+        bands approximation (fastest). If 'parabolic', use the parabolic
+        bands approximation (fast). If 'kane', include Gamma-valley
+        non-parabolicity under the k.p Kane approximation (slow).
+
+    Returns
+    -------
+    s : ZeroCurrentSolution
+        Zero current solution
+    '''
+    # get materials and device parameters
+    parameters = device._get_parameters(T, N)
+    flatband = device._get_flatband(T, N)
+    
+    # calculate other parameters
+    x = flatband.x
+    dx = x[1]  # cm
+    Vt = k*T  # eV
+    eps = eps0 * parameters.dielectric  # C Vt**-1 cm**-1
+    q_over_eps = q / eps  # Vt cm
+    
+    # get functions for calculating p, n, dp, and dn
+    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(device,
+                                                          phi_p, phi_n,
+                                                          T, N,
+                                                          approx)
+
+    # band edge potentials
+#     Delta_Egc = 0.  # TODO: include bandgap reduction
+#     Delta_Egv = 0.  # TODO: include bandgap reduction
+    
+    # Use charge neutrality to guess psi.
+    psi0 = charge_neutrality(device, V, phi_p, phi_n, T, N, approx)
+    
+    # boundary conditions
+    if isinstance(device._contacts[0], OhmicContact):
+        a = psi0[0]
+    elif isinstance(device._contacts[0], SchottkyContact):
+        wf = device._contacts[0].work_function
+        a = parameters.electron_affinity[0] + flatband.Ec[0] - wf
+    else:
+        raise RuntimeError('unexpected execution path')
+    if isinstance(device._contacts[-1], OhmicContact):
+        b = psi0[-1] #- V
+    elif isinstance(device._contacts[-1], SchottkyContact):
+        wf = device._contacts[-1].work_function
+        b = parameters.electron_affinity[-1] + flatband.Ec[-1] - wf #- V
+    else:
+        raise RuntimeError('unexpected execution path')
+
+#     global last_psi
+#     last_psi = psi0
+    def G(psi):
+#         global last_psi
+#         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
+#         last_psi = psi
+        f = (p(psi)-n(psi)+parameters.Nnet)*q_over_eps
+        _Fpsi = Fpsi(psi, f, dx, a=a, b=b)
+        return _Fpsi
+    def A(psi):
+        df_dpsi = (dp(psi) - dn(psi))*q_over_eps
+        return jacobian__Fpsi__psi(df_dpsi, dx)
+    
+    result = newton(G, A, psi0)
+    psi = result.value  # eV
+    logger.debug('psi = %s', str(psi))
+    return ZeroCurrentSolution(T, N, x,
+                               parameters.Na, parameters.Nd,
+                               phi_p, phi_n,
+                               flatband.Ev - psi,
+                               flatband.Ec_Gamma - psi,
+                               flatband.Ec_L - psi,
+                               flatband.Ec_X - psi,
+                               flatband.Ec-psi,
+                               flatband.Ei-psi,
+                               psi,
+                               n_Gamma(psi), n_L(psi), n_X(psi), n(psi), p(psi))
+
+def plot(psi, psi_kp, p, n, Nnet):
+    import matplotlib.pyplot as plt
+    x = numpy.arange(psi.size)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(211)
+    ax2 = fig.add_subplot(212)
+    ax1.plot(x, -psi, 'k--', label='$E_i$')
+    ax1.plot(x, -psi_kp, 'k:', label='$E_i^k+1$')
+    ax1.legend(loc='right')
+    ax2.semilogy(x, numpy.abs(Nnet), 'k-', label='$N_net$')
+    ax2.semilogy(x, p, 'r--', label='$p$')
+    ax2.semilogy(x, n, 'b--', label='$n$')
+    ax2.legend(loc='right')
+    plt.show()
+
 def poisson_eq(device, T=300., N=1000, approx='parabolic'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
@@ -246,188 +413,62 @@ def poisson_eq(device, T=300., N=1000, approx='parabolic'):
     s : EquilibriumSolution
         Equilibrium solution
     '''
+    V = phi_p = phi_n = 0.
+    zcs = _poisson_zero_current(device, V, phi_p, phi_n, T, N, approx)
+    return EquilibriumSolution(zcs)
+
+def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
+    '''
+    Uses Newton's method to solve the self-consistent electrostatic Poisson
+    equation for the given device at a given bias voltage under the
+    zero-current approximation.
+
+    Arguments
+    ---------
+    device : TwoTerminalDevice
+        Device
+    V : float
+        Bias voltage, i.e. left/top contact bias - right/bottom contact bias
+    T : float (default=300.)
+        Device temperature
+    N : int (default=1000)
+        Number of grid points
+    approx : str (default='parabolic')
+        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+        bands approximation (fastest). If 'parabolic', use the parabolic
+        bands approximation (fast). If 'kane', include Gamma-valley
+        non-parabolicity under the k.p Kane approximation (slow).
+
+    Returns
+    -------
+    s : EquilibriumSolution
+        Equilibrium solution
+    '''
     Vt = k*T  # eV
-    flatband = device._get_flatband(T, N)
-    x = flatband.x
-    materials = device._get_materials(N)
-    dx = x[1]  # cm
-    
-    # materials parameters
-    eps_r = numpy.array([m.dielectric(T=T) for m in materials])
-    eps = eps0 * eps_r  # C Vt**-1 cm**-1
-    q_over_eps = q / eps  # Vt cm
-    Na = numpy.array([m.Na(T=T) for m in materials])  # cm**-3
-    Nd = numpy.array([m.Nd(T=T) for m in materials])  # cm**-3
-    Nnet = numpy.array([m.Nnet(T=T) for m in materials])  # cm**-3
-    Nc_Gamma = numpy.array([m.Nc_Gamma(T=T) for m in materials])  # cm**-3
-    Nc_L = numpy.array([m.Nc_L(T=T) for m in materials])  # cm**-3
-    Nc_X = numpy.array([m.Nc_X(T=T) for m in materials])  # cm**-3
-    Nc = numpy.array([m.Nc(T=T) for m in materials])  # cm**-3
-    Nv = numpy.array([m.Nv(T=T) for m in materials])  # cm**-3
+    phi_p = numpy.empty(N)
+    phi_n = numpy.empty(N)
 
-    # band edges
-    Ev0 = flatband.Ev  # cm**-3
-    Ec_Gamma0 = flatband.Ec_Gamma  # cm**-3
-    Ec_L0 = flatband.Ec_L  # cm**-3
-    Ec_X0 = flatband.Ec_X  # cm**-3
-    Ec0 = flatband.Ec  # cm**-3
-    Ei0 = flatband.Ei
-    
-    # define functions for calculating p, n, dp, and dn
-    if approx == 'boltzmann':
-        def p(u):
-            Ev = Ev0 - u
-            return boltz_p(0., Ev, Nv, Vt)
-        def n_Gamma(u):
-            Ec_Gamma = Ec_Gamma0 - u
-            return boltz_n(0., Ec_Gamma, Nc_Gamma, Vt)
-        def n_L(u):
-            Ec_L = Ec_L0 - u
-            return boltz_n(0., Ec_L, Nc_L, Vt)
-        def n_X(u):
-            Ec_X = Ec_X0 - u
-            return boltz_n(0., Ec_X, Nc_X, Vt)
-        def n(u):
-            return n_Gamma(u)+n_L(u)+n_X(u)
-        def dp(u):
-            Ev = Ev0 - u
-            return dboltz_p(0., Ev, Nv, Vt)
-        def dn(u):
-            Ec_Gamma = Ec_Gamma0 - u
-            Ec_L = Ec_L0 - u
-            Ec_X = Ec_X0 - u
-            return (dboltz_n(0., Ec_Gamma, Nc_Gamma, Vt) +
-                    dboltz_n(0., Ec_L, Nc_L, Vt) + 
-                    dboltz_n(0., Ec_X, Nc_X, Vt))
-    elif approx == 'parabolic':
-        def p(u):
-            Ev = Ev0 - u
-            return fermi_p(0., Ev, Nv, Vt)
-        def n_Gamma(u):
-            Ec_Gamma = Ec_Gamma0 - u
-            return fermi_n(0., Ec_Gamma, Nc_Gamma, Vt)
-        def n_L(u):
-            Ec_L = Ec_L0 - u
-            return fermi_n(0., Ec_L, Nc_L, Vt)
-        def n_X(u):
-            Ec_X = Ec_X0 - u
-            return fermi_n(0., Ec_X, Nc_X, Vt)
-        def n(u):
-            return n_Gamma(u)+n_L(u)+n_X(u)
-        def dp(u):
-            Ev = Ev0 - u
-            return dfermi_p(0., Ev, Nv, Vt)
-        def dn(u):
-            Ec_Gamma = Ec_Gamma0 - u
-            Ec_L = Ec_L0 - u
-            Ec_X = Ec_X0 - u
-            return (dfermi_n(0., Ec_Gamma, Nc_Gamma, Vt) +
-                    dfermi_n(0., Ec_L, Nc_L, Vt) + 
-                    dfermi_n(0., Ec_X, Nc_X, Vt))
-    elif approx == 'kane':
-        alpha = numpy.array([m.nonparabolicity(T=T) for m in materials])
-        def p(u):
-            Ev = Ev0 - u
-            return fermi_p(0., Ev, Nv, Vt)
-        def n_Gamma(u):
-            Ec_Gamma = Ec_Gamma0 - u
-            return npfermi_n(0., Ec_Gamma, Nc_Gamma, alpha, Vt)
-        def n_L(u):
-            Ec_L = Ec_L0 - u
-            return fermi_n(0., Ec_L, Nc_L, Vt)
-        def n_X(u):
-            Ec_X = Ec_X0 - u
-            return fermi_n(0., Ec_X, Nc_X, Vt)
-        def n(u):
-            return n_Gamma(u)+n_L(u)+n_X(u)
-        def dp(u):
-            Ev = Ev0 - u
-            return dfermi_p(0., Ev, Nv, Vt)
-        def dn(u):
-            Ec_Gamma = Ec_Gamma0 - u
-            Ec_L = Ec_L0 - u
-            Ec_X = Ec_X0 - u
-            return (dnpfermi_n(0., Ec_Gamma, Nc_Gamma, alpha, Vt) +
-                    dfermi_n(0., Ec_L, Nc_L, Vt) + 
-                    dfermi_n(0., Ec_X, Nc_X, Vt))
-    else:
-        raise ValueError('Invalid value for approx: {}'.format(approx))
-
-    # band edge potentials
-#     Delta_Egc = 0.  # TODO: include bandgap reduction
-#     Delta_Egv = 0.  # TODO: include bandgap reduction
-    Vn = Vt*log(Nc/Nc[0]) - (Ec0 - Ec0[0])# + Delta_Egc
-    Vp = Vt*log(Nv/Nv[0]) - (Ev0 - Ev0[0])# + Delta_Egv
-
-    # effective intrinsic carrier concentration
-    nieff = sqrt(Nc*Nv)*exp(-(Ec0-Ev0)/2./Vt)  # cm**-3
-    
-    # Use charge neutrality to guess psi
-    psi0 = numpy.zeros(N)
+    Fp, Fn = device._get_Fp_Fn(N)
     for i in xrange(N):
-        if Nnet[i] <= 0.:
-            p0 = -Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2.)
-            psi0[i] = -Vt*log(p0/Nv[i]) + Ev0[i]
+        if Fp[i] is None:
+            phi_p[i] = numpy.inf
+        elif Fp[i] == 'left':
+            phi_p[i] = 0.
+        elif Fp[i] == 'right':
+            phi_p[i] = V
         else:
-            n0 = Nnet[i]/2. + sqrt((Nnet[i]/2.)**2+nieff[i]**2)
-            psi0[i] = Vt*log(n0/Nc[i])+Ec0[i]
-    # Refine with newton method, in case the single conduction band
-    # approximation is inadequate
-    def G0(u):
-        return (p(u)-n(u)+Nnet)
-    def A0(u):
-        df_du = (dp(u) - dn(u))
-        return spdiags(df_du, [0], N, N, format='csr')
-    result = newton(G0, A0, psi0)
-    psi0 = result.value  # eV
-    
-    # boundary conditions
-    if isinstance(device._contacts[0], OhmicContact):
-        a=psi0[0]
-    elif isinstance(device._contacts[0], SchottkyContact):
-        wf = device._contacts[0].work_function
-        a = materials[0].electron_affinity(T=T) + Ec0[0] - wf
-    else:
-        raise RuntimeError('unexpected execution path')
-    if isinstance(device._contacts[1], OhmicContact):
-        b=psi0[-1]
-    elif isinstance(device._contacts[1], SchottkyContact):
-        wf = device._contacts[1].work_function
-        b = materials[0].electron_affinity(T=T) + Ec0[0] - wf
-    else:
-        raise RuntimeError('unexpected execution path')
+            raise RuntimeError('Invalid value for Fp: {}'.format(Fp[i]))
 
-#     global last_u
-#     last_u = psi0
-    def G(u):
-#         global last_u
-#         plot(last_u, u, p(u), n(u), Nnet)
-#         last_u = u
-        f = (p(u)-n(u)+Nnet)*q_over_eps
-        _Fpsi = Fpsi(u, f, dx, a=a, b=b)
-        return _Fpsi
-    def A(u):
-        df_du = q_over_eps*(dp(u) - dn(u))
-        return jacobian__Fpsi__psi(df_du, dx)
-    
-    result = newton(G, A, psi0)
-    psi = result.value  # eV
-    return EquilibriumSolution(T, N, x, Na, Nd,
-                               Ev0 - psi, Ec_Gamma0 - psi, Ec_L0 - psi,
-                               Ec_X0 - psi, Ec0-psi, Ei0-psi, psi,
-                               n_Gamma(psi), n_L(psi), n_X(psi), n(psi), p(psi))
+        if Fn[i] is None:
+            phi_n[i] = -numpy.inf
+        elif Fn[i] == 'left':
+            phi_n[i] = 0.
+        elif Fn[i] == 'right':
+            phi_n[i] = V
+        else:
+            raise RuntimeError('Invalid value for Fp: {}'.format(Fp[i]))
 
-def plot(psi, psi_kp, p, n, Nnet):
-    import matplotlib.pyplot as plt
-    x = numpy.arange(psi.size)
-    fig = plt.figure()
-    ax1 = fig.add_subplot(211)
-    ax2 = fig.add_subplot(212)
-    ax1.plot(x, -psi, 'k--', label='$E_i$')
-    ax1.plot(x, -psi_kp, 'k:', label='$E_i^k+1$')
-    ax1.legend(loc='right')
-    ax2.semilogy(x, numpy.abs(Nnet), 'k-', label='$N_net$')
-    ax2.semilogy(x, p, 'r--', label='$p$')
-    ax2.semilogy(x, n, 'b--', label='$n$')
-    ax2.legend(loc='right')
-    plt.show()
+    if (phi_p == numpy.inf).all() and (phi_n == -numpy.inf).all():
+        raise ValueError('Fp or Fn must be specified for at least one layer')
+
+    return _poisson_zero_current(device, V, phi_p, phi_n, T, N, approx)

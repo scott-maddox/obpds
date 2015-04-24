@@ -102,6 +102,10 @@ class Material(object):
             self._Ei[T] = Ei
             return Ei
     
+    def ni(self, T=300):
+        return (numpy.sqrt(self.Nv(T=T)*self.Nc(T=T)) *
+                numpy.exp(-self.Eg(T=T)/(2*k*T)))
+    
     def Nc_Gamma(self, T=300):
         if T in self._Nc_Gamma:
             return self._Nc_Gamma[T]

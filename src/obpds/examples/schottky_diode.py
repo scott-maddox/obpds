@@ -18,6 +18,8 @@
 #
 #############################################################################
 
+import logging; logging.basicConfig()
+
 # Make sure we import the local obpds version
 import os
 import sys
@@ -30,7 +32,10 @@ n = Layer(0.3*um, Material(GaAs, -1e17/cm3))
 
 # Device
 d = TwoTerminalDevice(layers=[n],
-                      contacts=[SchottkyContact(), OhmicContact()])
+                      contacts=[SchottkyContact(), OhmicContact()],
+                      Fn='right')
 
 # Simulate and show the equilibrium band profile using the default method.
 d.show_equilibrium()
+d.show_zero_current(V=0.5)
+d.show_zero_current(V=-0.5)
