@@ -173,7 +173,7 @@ class TwoTerminalDevice(object):
     def _calc_parameters(self, T, N):
         s = ParametersSolution()
         s.materials = materials = self._get_materials(N)
-        for p in ['VBO', 'CBO_Gamma', 'CBO_L', 'CBO_X', 'CBO', 'Ei',
+        for p in ['VBO', 'CBO_Gamma', 'CBO_L', 'CBO_X', 'CBO', 'Ei', 'ni',
                   'dielectric', 'Na', 'Nd', 'Nnet', 'Nc_Gamma', 'Nc_L',
                   'Nc_X', 'Nc', 'Nv', 'nonparabolicity', 'electron_affinity']:
             value = numpy.array([getattr(m, p)(T=T) for m in materials],
