@@ -137,7 +137,7 @@ class TwoTerminalDevice(object):
             Fp = []
             for x in self._get_x(N):
                 i = numpy.searchsorted(layer_xs, x)
-                Fp.append(Fp[i])
+                Fp.append(self._Fp[i])
                 
         if self._Fn is None:
             Fn = [None]*N
@@ -155,7 +155,7 @@ class TwoTerminalDevice(object):
             Fn = []
             for x in self._get_x(N):
                 i = numpy.searchsorted(layer_xs, x)
-                Fn.append(Fn[i])
+                Fn.append(self._Fn[i])
         
         return Fp, Fn
 
