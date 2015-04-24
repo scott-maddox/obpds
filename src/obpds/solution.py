@@ -39,8 +39,9 @@ class FlatbandSolution(Solution):
         self.Ec = Ec
         self.Ei = Ei
 
-class EquilibriumSolution(Solution):
+class ZeroCurrentSolution(Solution):
     def __init__(self, T, N, x, Na, Nd,
+                 Fp, Fn,
                  Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
                  psi, n_Gamma, n_L, n_X, n, p):
         self.T = T
@@ -48,6 +49,8 @@ class EquilibriumSolution(Solution):
         self.x = x
         self.Na = Na
         self.Nd = Nd
+        self.Fp = Fp  # quasi-Fermi energy for holes
+        self.Fn = Fn  # quasi-Fermi energy for electrons
         self.Ev = Ev
         self.Ec_Gamma = Ec_Gamma
         self.Ec_L = Ec_L
@@ -60,4 +63,8 @@ class EquilibriumSolution(Solution):
         self.n_X = n_X
         self.n = n
         self.p = p
-        self.Ef = numpy.zeros(N)
+
+class EquilibriumSolution(ZeroCurrentSolution):
+    def __new__(self, zcs):
+        zcs.Ef = numpy.zeros(zcs.N)  # Fermi energy
+        return zcs
