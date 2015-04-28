@@ -19,6 +19,11 @@
 #############################################################################
 
 from .units import to_units, cm
+import numpy
+
+
+__all__ = ['Layer', 'GradedLayer', 'CompoundLayer']
+
 
 class Layer(object):
     def __init__(self, thickness, material):
@@ -52,6 +57,10 @@ class Layer(object):
             raise ValueError('x not within range [{:g}, {:g}]'
                              ''.format(0., self.get_thickness()))
         return self._material
+    
+    def get_materials(self, N):
+        xs = numpy.linspace(0., self.get_thickness(), N)
+        return [self.get_material(x) for x in xs]
 
     def get_flatband(self, T=300.):
         '''
@@ -76,6 +85,50 @@ class Layer(object):
     def write_AMBER_recipe(self, fobj):
         fobj.write('l {} {:.3f} ! Angs\n'.format(self._material.name,
                                                  self._thickness*1e8))
+
+class GradedLayer(Layer):
+    def __init__(self, thickness, material_func):
+        self._thickness = to_units(thickness, cm)
+        self._material_func = material_func
+
+    def get_material(self, x):
+        '''
+        Returns the material at a given position (cm) within the layer.
+        
+        Parameters
+        ----------
+        x : float
+            position (cm) between zero and the layer thickness
+        '''
+        if x < 0. or x > self.get_thickness():
+            raise ValueError('x not within range [{:g}, {:g}]'
+                             ''.format(0., self.get_thickness()))
+        return self._material_func(x, self.get_thickness())
+    
+    def get_materials(self, N):
+        xs = numpy.linspace(0., self.get_thickness(), N)
+        return [self.get_material(x) for x in xs]
+
+    def get_flatband(self, T=300., N=50):
+        '''
+        returns x, Ev, Ec, Ei
+        
+        x will be [0, thickness]
+        Ev will be [VBO, VBO]
+        Ec will be [CBO, CBO]
+        Ei will be [VBO+Ei, VBO+Ei]
+        
+        Arguments
+        ---------
+        T : float
+            the temperature
+        '''
+        x = numpy.linspace(0., self.get_thickness(), N)
+        mats = self.get_materials(N)
+        VBO = [mat.VBO(T=T) for mat in mats]
+        CBO = [mat.CBO(T=T) for mat in mats]
+        ILO = [mat.VBO(T=T)+mat.Ei(T=T) for mat in mats]
+        return x, VBO, CBO, ILO
 
 class CompoundLayer(Layer):
     
