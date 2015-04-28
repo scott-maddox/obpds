@@ -46,7 +46,9 @@ class ZeroCurrentSolution(Solution):
     def __init__(self, T, N, x, Na, Nd,
                  Fp, Fn,
                  Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
-                 psi, n_Gamma, n_L, n_X, n, p):
+                 dEv_dx, dEc_Gamma_dx, dEc_L_dx, dEc_X_dx, dEc_dx,
+                 psi, field,
+                 n_Gamma, n_L, n_X, n, p):
         self.T = T
         self.N = N
         self.x = x
@@ -60,7 +62,13 @@ class ZeroCurrentSolution(Solution):
         self.Ec_X = Ec_X
         self.Ec = Ec
         self.Ei = Ei
+        self.dEv_dx = dEv_dx
+        self.dEc_Gamma_dx = dEc_Gamma_dx
+        self.dEc_L_dx = dEc_L_dx
+        self.dEc_X_dx = dEc_X_dx
+        self.dEc_dx = dEc_dx
         self.psi = psi
+        self.field = field
         self.n_Gamma = n_Gamma
         self.n_L = n_L
         self.n_X = n_X

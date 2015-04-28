@@ -383,17 +383,25 @@ def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
     
     result = newton(G, A, psi0)
     psi = result.value  # eV
+    Ev = flatband.Ev - psi
+    Ec_Gamma = flatband.Ec_Gamma - psi
+    Ec_L = flatband.Ec_L - psi
+    Ec_X = flatband.Ec_X - psi
+    Ec = flatband.Ec-psi
+    Ei = flatband.Ei-psi
+    field = -numpy.gradient(psi)/dx
+    dEv_dx = numpy.gradient(Ev)/dx
+    dEc_Gamma_dx = numpy.gradient(Ec_Gamma)/dx
+    dEc_L_dx = numpy.gradient(Ec_L)/dx
+    dEc_X_dx = numpy.gradient(Ec_X)/dx
+    dEc_dx = numpy.gradient(Ec)/dx
     logger.debug('psi = %s', str(psi))
     return ZeroCurrentSolution(T, N, x,
                                parameters.Na, parameters.Nd,
                                phi_p, phi_n,
-                               flatband.Ev - psi,
-                               flatband.Ec_Gamma - psi,
-                               flatband.Ec_L - psi,
-                               flatband.Ec_X - psi,
-                               flatband.Ec-psi,
-                               flatband.Ei-psi,
-                               psi,
+                               Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
+                               dEv_dx, dEc_Gamma_dx, dEc_L_dx, dEc_X_dx, dEc_dx,
+                               psi, field,
                                n_Gamma(psi), n_L(psi), n_X(psi), n(psi), p(psi))
 
 def plot(psi, psi_kp, p, n, Nnet):

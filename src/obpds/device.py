@@ -253,14 +253,16 @@ class TwoTerminalDevice(object):
         solution = self.get_equilibrium(T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
-        _, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
+        _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
+                                          figsize=(10, 10), tight_layout=True)
         ax1.set_ymargin(0.05)
-        ax2.set_ymargin(0.05)
         ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
         ax1.plot(x, solution.Ec, 'b-', label='$E_c$')
         ax1.plot(x, solution.Ef, 'k--', label='$E_f$')
         ax1.plot(x, solution.Ei, 'k:', label='$E_i$')
         ax1.set_ylabel('Energy (eV)')
+        
+        ax2.set_ymargin(0.05)
         if (solution.Na > 0.).any():
             ax2.semilogy(x, solution.Na, 'r-', label='$N_A$')
         if (solution.Nd > 0.).any():
@@ -268,11 +270,36 @@ class TwoTerminalDevice(object):
         ax2.semilogy(x, solution.p, 'r--', label='$p$')
         ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
-        ax2.set_xlabel('Depth (nm)')
         ymin, ymax = ax2.get_ylim()
         if ymax/ymin > 1e10:
             ax2.set_ylim(ymax/1e10, ymax)
+            
+        ax3.set_ymargin(0.05)
+        ax3.plot(x, solution.field, 'k-')
+        ax3.plot(x, solution.dEv_dx, 'r-')
+        ax3.plot(x, solution.dEc_dx, 'b-')
+        ax3.set_ylabel('Effective Field (V/cm)')
+        ax3.set_xlabel('Depth (nm)')
+        ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        
         plt.show()
+    
+    def _save_solution(self, s, path):
+        names = [name for name in dir(s) if not name.startswith('_')]
+        excludes = ['N', 'T', 'materials']
+        for exclude in excludes:
+            if exclude in names:
+                names.remove(exclude)
+        arrays = [getattr(s, name) for name in names]
+        if not names:
+            return
+        header = '\t'.join(names)+'\n'
+        template = '\t'.join(['{}' for name in names])+'\n'
+        with open(path, 'w') as f:
+            f.write(header)
+            for i in xrange(arrays[0].size):
+                values = [repr(array[i]) for array in arrays]
+                f.write(template.format(*values))
 
     def save_equilibrium(self, path, show=False, T=300, N=1000, approx='parabolic'):
         '''
@@ -297,12 +324,7 @@ class TwoTerminalDevice(object):
         if show:
             self.show_equilibrium(T, N, approx)
         s = self.get_equilibrium(T, N, approx)
-        with open(path, 'w') as f:
-            f.write('x\tEv\tEc\tEi\tp\tn\tNa\tNd\n')
-            for i in xrange(s.x.size):
-                f.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'
-                        ''.format(s.x[i], s.Ev[i], s.Ec[i], s.Ei[i],
-                                  s.p[i], s.n[i], s.Na[i], s.Nd[i]))
+        self._save_solution(s, path)
     
     def _calc_zero_current(self, V, T, N, approx='parabolic'):
         solution = poisson_zero_current(self, V=V, T=T, N=N, approx=approx)
@@ -354,7 +376,9 @@ class TwoTerminalDevice(object):
         solution = self.get_zero_current(V, T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
-        _, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
+        _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
+                                          figsize=(10, 10), tight_layout=True)
+
         ax1.set_ymargin(0.05)
         ax2.set_ymargin(0.05)
         ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
@@ -363,6 +387,8 @@ class TwoTerminalDevice(object):
         ax1.plot(x, solution.Fn, 'b--', label='$F_n$')
         ax1.plot(x, solution.Ei, 'k:', label='$E_i$')
         ax1.set_ylabel('Energy (eV)')
+        
+        ax2.set_ymargin(0.05)
         if (solution.Na > 0.).any():
             ax2.semilogy(x, solution.Na, 'r-', label='$N_A$')
         if (solution.Nd > 0.).any():
@@ -370,8 +396,46 @@ class TwoTerminalDevice(object):
         ax2.semilogy(x, solution.p, 'r--', label='$p$')
         ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
-        ax2.set_xlabel('Depth (nm)')
         ymin, ymax = ax2.get_ylim()
         if ymax/ymin > 1e10:
             ax2.set_ylim(ymax/1e10, ymax)
+            
+        ax3.set_ymargin(0.05)
+        ax3.plot(x, solution.field, 'k-')
+        ax3.plot(x, solution.dEv_dx, 'r-')
+        ax3.plot(x, solution.dEc_dx, 'b-')
+        ax3.axhline(0, color='grey')
+        ax3.set_ylabel('Effective Field (V/cm)')
+        ax3.set_xlabel('Depth (nm)')
+        ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        
         plt.show()
+
+    def save_zero_current(self, path, V, show=False, T=300, N=1000,
+                         approx='parabolic'):
+        '''
+        Save the band profile at a given bias voltage under the
+        zero-current approximation.
+        
+        Arguments
+        ---------
+        path : string
+            the file path
+        show : bool
+            shows the bands if True
+        V : float
+            Bias voltage, i.e. left/top contact bias - right/bottom contact bias
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
+        '''
+        if show:
+            self.show_zero_current(V, T, N, approx)
+        s = self.get_zero_current(V, T, N, approx)
+        self._save_solution(s, path)
