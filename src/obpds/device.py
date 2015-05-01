@@ -275,9 +275,9 @@ class TwoTerminalDevice(object):
             ax2.set_ylim(ymax/1e10, ymax)
             
         ax3.set_ymargin(0.05)
-        ax3.plot(x, solution.field, 'k-')
         ax3.plot(x, solution.dEv_dx, 'r-')
         ax3.plot(x, solution.dEc_dx, 'b-')
+        ax3.plot(x, solution.field, 'k-')
         ax3.set_ylabel('Effective Field (V/cm)')
         ax3.set_xlabel('Depth (nm)')
         ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
@@ -401,9 +401,9 @@ class TwoTerminalDevice(object):
             ax2.set_ylim(ymax/1e10, ymax)
             
         ax3.set_ymargin(0.05)
-        ax3.plot(x, solution.field, 'k-')
         ax3.plot(x, solution.dEv_dx, 'r-')
         ax3.plot(x, solution.dEc_dx, 'b-')
+        ax3.plot(x, solution.field, 'k-')
         ax3.axhline(0, color='grey')
         ax3.set_ylabel('Effective Field (V/cm)')
         ax3.set_xlabel('Depth (nm)')
