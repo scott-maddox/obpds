@@ -53,7 +53,7 @@ class Layer(object):
         x : float
             position (cm) between zero and the layer thickness
         '''
-        if x < 0. or x > self.get_thickness():
+        if x < 0. or x > self.get_thickness()*1.0000000001:
             raise ValueError('x not within range [{:g}, {:g}]'
                              ''.format(0., self.get_thickness()))
         return self._material
