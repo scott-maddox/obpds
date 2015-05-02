@@ -23,11 +23,11 @@ from fdint import fdk, dfdk
 from ifdint import ifd1h
 
 
-__all__ = ['boltz_p', 'boltz_n', 'iboltz_p', 'iboltz_n',
-           'dboltz_p', 'dboltz_n',
-           'fermi_p', 'fermi_n', 'ifermi_p', 'ifermi_n',
-           'dfermi_p', 'dfermi_n',
-           'npfermi', 'npfermi_n', 'dnpfermi_n']
+__all__ = ['boltz_p', 'boltz_n', 'boltz_phi_p', 'boltz_phi_n',
+           'boltz_dp', 'boltz_dn',
+           'para_p', 'para_n', 'para_phi_p', 'para_phi_n',
+           'para_dp', 'para_dn',
+           'npfermi', 'kane_n', 'kane_dn']
 
 # Boltzmann approximation to the Fermi-Dirac integral for a bulk
 # semiconductor with parabolic bands.
@@ -39,41 +39,41 @@ def boltz_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
     return exp(phi)*Nc
 
-def iboltz_p(p, Ev, Nv, Vt):
+def boltz_phi_p(p, Ev, Nv, Vt):
     return Ev - log(p / Nv)*Vt
 
-def iboltz_n(n, Ec, Nc, Vt):
+def boltz_phi_n(n, Ec, Nc, Vt):
     return Ec + log(n / Nc)*Vt
 
-def dboltz_p(phi_p, Ev, Nv, Vt):
+def boltz_dp(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
     return -exp(phi)*Nv/Vt
 
-def dboltz_n(phi_n, Ec, Nc, Vt):
+def boltz_dn(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
     return exp(phi)*Nc/Vt
 
 # Fermi-Dirac integral for a bulk semiconductor with parabolic bands
 assert 2/sqrt(pi) == 1.1283791670955126
-def fermi_p(phi_p, Ev, Nv, Vt):
+def para_p(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
     return fdk(0.5,phi)*(Nv*1.1283791670955126)
 
-def fermi_n(phi_n, Ec, Nc, Vt):
+def para_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
     return fdk(0.5,phi)*(Nc*1.1283791670955126)
 
-def ifermi_p(p, Ev, Nv, Vt):
+def para_phi_p(p, Ev, Nv, Vt):
     return Ev - ifd1h(p / (Nv*1.1283791670955126))*Vt
 
-def ifermi_n(n, Ec, Nc, Vt):
+def para_phi_n(n, Ec, Nc, Vt):
     return Ec + ifd1h(n / (Nc*1.1283791670955126))*Vt
 
-def dfermi_p(phi_p, Ev, Nv, Vt):
+def para_dp(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
     return -0.5*fdk(-0.5,phi)*(Nv*1.1283791670955126)/Vt
 
-def dfermi_n(phi_n, Ec, Nc, Vt):
+def para_dn(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
     return 0.5*fdk(-0.5,phi)*(Nc*1.1283791670955126)/Vt
 
@@ -128,14 +128,14 @@ def _dnpfermi(phi, alpha):
                 (1.0*alpha*phi + 0.5) / (phi*(alpha*phi + 1)))
 dnpfermi = numpy.vectorize(_dnpfermi)
     
-def npfermi_n(phi_n, Ec, Nc, alpha, Vt):
+def kane_n(phi_n, Ec, Nc, alpha, Vt):
     '''
     Non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
     return npfermi(phi, alpha)*(Nc*1.1283791670955126)
 
-def dnpfermi_n(phi_n, Ec, Nc, alpha, Vt):
+def kane_dn(phi_n, Ec, Nc, alpha, Vt):
     '''
     Derivative of the non-parabolic Fermi-Dirac integral.
     '''
