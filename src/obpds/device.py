@@ -22,12 +22,16 @@ import numpy
 
 from .layer import CompoundLayer
 from .contact import Contact, OhmicContact
-from .solver import poisson_eq, poisson_zero_current
+from .solver import (poisson_eq, poisson_zero_current,
+                     capacitance_zero_current)
 from .solution import ParametersSolution, FlatbandSolution
 
 
 __all__ = ['TwoTerminalDevice']
 
+
+# electron charge
+q = 1.602176565e-19 # C
 
 class TwoTerminalDevice(object):
     '''
@@ -59,6 +63,7 @@ class TwoTerminalDevice(object):
         self._flatband = {}
         self._equilibrium = {}
         self._zero_current = {}
+        self._capacitance = {}
         
         self._layer = CompoundLayer(layers)
 
@@ -213,6 +218,24 @@ class TwoTerminalDevice(object):
         self._equilibrium[(T, N, approx)] = solution
         return solution
     
+    def has_equilibrium(self, T=300., N=1000, approx='parabolic'):
+        '''
+        Returns True if the equilbrium solution is cached.
+        
+        Arguments
+        ---------
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
+        '''
+        return (T, N, approx) in self._equilibrium
+
     def get_equilibrium(self, T=300., N=1000, approx='parabolic'):
         '''
         Returns an `EquilibriumSolution` instance.
@@ -229,7 +252,7 @@ class TwoTerminalDevice(object):
             bands approximation (fast). If 'kane', include Gamma-valley
             non-parabolicity under the k.p Kane approximation (slow).
         '''
-        if (T, N, approx) in self._equilibrium:
+        if self.has_equilibrium(T, N, approx):
             return self._equilibrium[(T, N, approx)]
         else:
             return self._calc_equilibrium(T, N, approx)
@@ -286,7 +309,7 @@ class TwoTerminalDevice(object):
     
     def _save_solution(self, s, path):
         names = [name for name in dir(s) if not name.startswith('_')]
-        excludes = ['N', 'T', 'materials']
+        excludes = ['V', 'N', 'T', 'materials']
         for exclude in excludes:
             if exclude in names:
                 names.remove(exclude)
@@ -327,9 +350,27 @@ class TwoTerminalDevice(object):
         self._save_solution(s, path)
     
     def _calc_zero_current(self, V, T, N, approx='parabolic'):
-        solution = poisson_zero_current(self, V=V, T=T, N=N, approx=approx)
-        self._zero_current[(V, T, N, approx)] = solution
-        return solution
+        return poisson_zero_current(self, V=V, T=T, N=N, approx=approx)
+    
+    def has_zero_current(self, V, T=300., N=1000, approx='parabolic'):
+        '''
+        Returns True if the zero current solution is cached.
+        
+        Arguments
+        ---------
+        V : float
+            Bias voltage, i.e. left/top contact bias - right/bottom contact bias
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
+        '''
+        return (V, T, N, approx) in self._zero_current
     
     def get_zero_current(self, V, T=300., N=1000, approx='parabolic'):
         '''
@@ -349,10 +390,12 @@ class TwoTerminalDevice(object):
             bands approximation (fast). If 'kane', include Gamma-valley
             non-parabolicity under the k.p Kane approximation (slow).
         '''
-        if (V, T, N, approx) in self._zero_current:
+        if self.has_zero_current(V, T, N, approx):
             return self._zero_current[(V, T, N, approx)]
         else:
-            return self._calc_zero_current(V, T, N, approx)
+            solution = self._calc_zero_current(V, T, N, approx)
+            self._zero_current[(V, T, N, approx)] = solution
+            return solution
 
     def show_zero_current(self, V, T=300., N=1000, approx='parabolic'):
         '''
@@ -439,3 +482,63 @@ class TwoTerminalDevice(object):
             self.show_zero_current(V, T, N, approx)
         s = self.get_zero_current(V, T, N, approx)
         self._save_solution(s, path)
+    
+    def _calc_capacitance(self, V, dV, T=300, N=1000, approx='parabolic'):
+        return capacitance_zero_current(self, V, dV, T, N, approx)
+    
+    def get_capacitance(self, V, dV=1e-3, T=300, N=1000, approx='parabolic'):
+        '''
+        Returns
+        -------
+        C : float
+            capacitance in units of F/cm**2
+        '''
+        if (V, dV, T, N, approx) in self._capacitance:
+            return self._capacitance[(V, dV, T, N, approx)]
+        else:
+            s = self._calc_capacitance(V, dV, T, N, approx)
+            self._capacitance[(V, dV, T, N, approx)] = s
+            return s
+    
+    def get_cv(self, Vstart, Vstop, Vnum=100, dV=1e-3, T=300, N=1000,
+               approx='parabolic'):
+        '''
+        Returns
+        -------
+        C : ndarray
+            capacitance in units of F/cm**2
+        V : ndarray
+            bias voltage in units of V
+        '''
+        V = numpy.linspace(Vstart, Vstop, Vnum)
+        C = numpy.empty(Vnum)
+        for i in xrange(Vnum):
+            C[i] = self.get_capacitance(V[i], dV, T, N, approx)
+        return C, V
+
+    def show_cv(self, Vstart, Vstop, Vnum=50, dV=1e-3, T=300, N=1000,
+                approx='parabolic'):
+        C, V = self.get_cv(Vstart, Vstop, Vnum, dV, T, N, approx)
+        import matplotlib.pyplot as plt
+        _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
+                                          figsize=(10, 10), tight_layout=True)
+            
+        ax1.set_ymargin(0.05)
+        ax1.plot(V, C, 'r-')
+#         ax1.axhline(0, color='grey')
+        ax1.set_ylabel('Capacitance (F/cm$^2$)')
+        
+        ax2.set_ymargin(0.05)
+        ax2.plot(V, 1/C**2, 'r-')
+        ax2.set_ylabel('1/C$^2$ (cm$^4$/F$^2$)')
+        
+        ax3.set_ymargin(0.05)
+        try:
+            ax3.semilogy(V, -dV/numpy.gradient(1/C**2), 'r-')
+        except:
+            ax3.set_yscale('linear')
+#             ax3.plot(V, -dV/numpy.gradient(1/C**2), 'r-')
+        ax3.set_ylabel('-dV/d(1/C$^2$)')
+        ax3.set_xlabel('Bias (V)')
+        
+        plt.show()

@@ -22,10 +22,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 import numpy
-from numpy import exp, log, sqrt
 from scipy.sparse import csr_matrix, spdiags
 
-from .newton import newton
+from .newton import scalar_newton, newton
 from .solution import ZeroCurrentSolution, EquilibriumSolution
 from .contact import OhmicContact, SchottkyContact
 
@@ -124,96 +123,81 @@ eps0 = 8.854187817620e-14 # C V**-1 cm**-1
 # Boltzmann constant
 k = 8.6173324e-5 # eV K**-1
 
-def get_fermi_functions(device, phi_p, phi_n, T=300., N=1000,
-                        approx='parabolic'):
-    # get materials and device parameters
-    parameters = device._get_parameters(T, N)
-    flatband = device._get_flatband(T, N)
-    
-    # calculate other parameters
-    Vt = k*T  # eV
+def get_fermi_functions(phi_p, phi_n, Ev, Nv,
+                        Ec_Gamma, Ec_L, Ec_X,
+                        Nc_Gamma, Nc_L, Nc_X, nonparabolicity, Vt, approx='parabolic'):
     
     # define functions for calculating p, n, dp, and dn
     if approx == 'boltzmann':
         def p(psi):
-            Ev = flatband.Ev - psi
-            return boltz_p(phi_p, Ev, parameters.Nv, Vt)
+            return boltz_p(phi_p, Ev - psi, Nv, Vt)
         def n_Gamma(psi):
-            Ec_Gamma = flatband.Ec_Gamma - psi
-            return boltz_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt)
+            return boltz_n(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt)
         def n_L(psi):
-            Ec_L = flatband.Ec_L - psi
-            return boltz_n(phi_n, Ec_L, parameters.Nc_L, Vt)
+            return boltz_n(phi_n, Ec_L - psi, Nc_L, Vt)
         def n_X(psi):
-            Ec_X = flatband.Ec_X - psi
-            return boltz_n(phi_n, Ec_X, parameters.Nc_X, Vt)
+            return boltz_n(phi_n, Ec_X - psi, Nc_X, Vt)
         def n(psi):
             return n_Gamma(psi)+n_L(psi)+n_X(psi)
         def dp(psi):
-            Ev = flatband.Ev - psi
-            return dboltz_p(phi_p, Ev, parameters.Nv, Vt)
+            return boltz_dp(phi_p, Ev - psi, Nv, Vt)
         def dn(psi):
-            Ec_Gamma = flatband.Ec_Gamma - psi
-            Ec_L = flatband.Ec_L - psi
-            Ec_X = flatband.Ec_X - psi
-            return (dboltz_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt) +
-                    dboltz_n(phi_n, Ec_L, parameters.Nc_L, Vt) + 
-                    dboltz_n(phi_n, Ec_X, parameters.Nc_X, Vt))
+            return (boltz_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt) +
+                    boltz_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
+                    boltz_dn(phi_n, Ec_X - psi, Nc_X, Vt))
     elif approx == 'parabolic':
         def p(psi):
-            Ev = flatband.Ev - psi
-            return fermi_p(phi_p, Ev, parameters.Nv, Vt)
+            return para_p(phi_p, Ev - psi, Nv, Vt)
         def n_Gamma(psi):
-            Ec_Gamma = flatband.Ec_Gamma - psi
-            return fermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt)
+            return para_n(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt)
         def n_L(psi):
-            Ec_L = flatband.Ec_L - psi
-            return fermi_n(phi_n, Ec_L, parameters.Nc_L, Vt)
+            return para_n(phi_n, Ec_L - psi, Nc_L, Vt)
         def n_X(psi):
-            Ec_X = flatband.Ec_X - psi
-            return fermi_n(phi_n, Ec_X, parameters.Nc_X, Vt)
+            return para_n(phi_n, Ec_X - psi, Nc_X, Vt)
         def n(psi):
             return n_Gamma(psi)+n_L(psi)+n_X(psi)
         def dp(psi):
-            Ev = flatband.Ev - psi
-            return dfermi_p(phi_p, Ev, parameters.Nv, Vt)
+            return para_dp(phi_p, Ev - psi, Nv, Vt)
         def dn(psi):
-            Ec_Gamma = flatband.Ec_Gamma - psi
-            Ec_L = flatband.Ec_L - psi
-            Ec_X = flatband.Ec_X - psi
-            return (dfermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma, Vt) +
-                    dfermi_n(phi_n, Ec_L, parameters.Nc_L, Vt) + 
-                    dfermi_n(phi_n, Ec_X, parameters.Nc_X, Vt))
+            return (para_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt) +
+                    para_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
+                    para_dn(phi_n, Ec_X - psi, Nc_X, Vt))
     elif approx == 'kane':
         def p(psi):
-            Ev = flatband.Ev - psi
-            return fermi_p(phi_p, Ev, parameters.Nv, Vt)
+            return para_p(phi_p, Ev - psi, Nv, Vt)
         def n_Gamma(psi):
-            Ec_Gamma = flatband.Ec_Gamma - psi
-            return npfermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma,
-                             parameters.nonparabolicity, Vt)
+            return kane_n(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt)
         def n_L(psi):
-            Ec_L = flatband.Ec_L - psi
-            return fermi_n(phi_n, Ec_L, parameters.Nc_L, Vt)
+            return para_n(phi_n, Ec_L - psi, Nc_L, Vt)
         def n_X(psi):
-            Ec_X = flatband.Ec_X - psi
-            return fermi_n(phi_n, Ec_X, parameters.Nc_X, Vt)
+            return para_n(phi_n, Ec_X - psi, Nc_X, Vt)
         def n(psi):
             return n_Gamma(psi)+n_L(psi)+n_X(psi)
         def dp(psi):
-            Ev = flatband.Ev - psi
-            return dfermi_p(phi_p, Ev, parameters.Nv, Vt)
+            return para_dp(phi_p, Ev - psi, Nv, Vt)
         def dn(psi):
-            Ec_Gamma = flatband.Ec_Gamma - psi
-            Ec_L = flatband.Ec_L - psi
-            Ec_X = flatband.Ec_X - psi
-            return (dnpfermi_n(phi_n, Ec_Gamma, parameters.Nc_Gamma,
-                               parameters.nonparabolicity, Vt) +
-                    dfermi_n(phi_n, Ec_L, parameters.Nc_L, Vt) + 
-                    dfermi_n(phi_n, Ec_X, parameters.Nc_X, Vt))
+            return (kane_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt) +
+                    para_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
+                    para_dn(phi_n, Ec_X - psi, Nc_X, Vt))
     else:
         raise ValueError('Invalid value for approx: {}'.format(approx))
     return p, n_Gamma, n_X, n_L, n, dp, dn
+
+def scalar_charge_neutrality(psi0, p, n, dp, dn, Nnet):
+    if Nnet == 0.:
+        return psi0
+ 
+    def G(psi):
+        return p(psi)-n(psi)+Nnet
+    def A(psi):
+        drho_dpsi = dp(psi) - dn(psi)
+        # replace 0's and nan's with 1.
+        if drho_dpsi == 0. or numpy.isnan(drho_dpsi).any():
+            drho_dpsi = 1.
+        return drho_dpsi
+    result = scalar_newton(G, A, psi0, rtol=1e-8)
+    assert result.converged
+    return result.value
 
 def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
                       approx='parabolic'):
@@ -221,14 +205,15 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
     parameters = device._get_parameters(T, N)
     flatband = device._get_flatband(T, N)
     
-    # get functions for calculating p, n, dp, and dn
-    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(device,
-                                                          phi_p, phi_n,
-                                                          T, N,
-                                                          approx)
-    
     # calculate other parameters
     Vt = k*T  # eV
+    
+    # get functions for calculating p, n, dp, and dn
+    p, _n_Gamma, _n_X, _n_L, n, dp, dn = get_fermi_functions(phi_p, phi_n,
+                    flatband.Ev, parameters.Nv,
+                    flatband.Ec_Gamma, flatband.Ec_L, flatband.Ec_X,
+                    parameters.Nc_Gamma, parameters.Nc_L, parameters.Nc_X,
+                    parameters.nonparabolicity, Vt, approx)
 
     ## Begin by setting the majority carrier density to the net doping density.
     psi0 = numpy.zeros(N)
@@ -242,11 +227,11 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
             phi_ni = phi_n
         if parameters.Nnet[i] < 0.:
             p0 = -parameters.Nnet[i]
-            phi_p0 = ifermi_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
+            phi_p0 = para_phi_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
             psi0[i] = phi_p0-phi_pi
         elif parameters.Nnet[i] > 0.:
             n0 = parameters.Nnet[i]
-            phi_n0 = ifermi_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
+            phi_n0 = para_phi_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
             psi0[i] = phi_n0-phi_ni
         else:
             if phi_pi != numpy.inf and phi_ni != -numpy.inf:
@@ -290,7 +275,7 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
     assert not numpy.isnan(psi0).any()
     return psi0
 
-def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
+def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
                           approx='parabolic'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
@@ -300,9 +285,11 @@ def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
     ---------
     device : TwoTerminalDevice
         Device
-    phi_p : float or ndarray
+    psi0 : ndarray
+        initial guess of the electrostatic potential
+    phi_p : ndarray
         hole quasi-Fermi level at each grid point
-    phi_n : float or ndarray
+    phi_n : ndarray
         electron quasi-Fermi level at each grid point
     T : float (default=300.)
         Device temperature
@@ -331,28 +318,38 @@ def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
     q_over_eps = q / eps  # Vt cm
     
     # get functions for calculating p, n, dp, and dn
-    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(device,
-                                                          phi_p, phi_n,
-                                                          T, N,
-                                                          approx)
+    p, n_Gamma, n_X, n_L, n, dp, dn = get_fermi_functions(phi_p, phi_n,
+                    flatband.Ev, parameters.Nv,
+                    flatband.Ec_Gamma, flatband.Ec_L, flatband.Ec_X,
+                    parameters.Nc_Gamma, parameters.Nc_L, parameters.Nc_X,
+                    parameters.nonparabolicity, Vt, approx)
 
     # band edge potentials
 #     Delta_Egc = 0.  # TODO: include bandgap reduction
 #     Delta_Egv = 0.  # TODO: include bandgap reduction
     
-    # Use charge neutrality to guess psi.
-    psi0 = charge_neutrality(device, V, phi_p, phi_n, T, N, approx)
-    
     # boundary conditions
     if isinstance(device._contacts[0], OhmicContact):
-        a = psi0[0]
+        p0, _, _, _, n0, dp0, dn0 = get_fermi_functions(phi_p[0], phi_n[0],
+                flatband.Ev[0], parameters.Nv[0],
+                flatband.Ec_Gamma[0], flatband.Ec_L[0], flatband.Ec_X[0],
+                parameters.Nc_Gamma[0], parameters.Nc_L[0], parameters.Nc_X[0],
+                parameters.nonparabolicity[0], Vt, approx)
+        a = scalar_charge_neutrality(psi0[0], p0, n0, dp0, dn0,
+                                     parameters.Nnet[0])
     elif isinstance(device._contacts[0], SchottkyContact):
         wf = device._contacts[0].work_function
         a = parameters.electron_affinity[0] + flatband.Ec[0] - wf
     else:
         raise RuntimeError('unexpected execution path')
     if isinstance(device._contacts[-1], OhmicContact):
-        b = psi0[-1] #- V
+        p0, _, _, _, n0, dp0, dn0 = get_fermi_functions(phi_p[-1], phi_n[-1],
+                flatband.Ev[-1], parameters.Nv[-1],
+                flatband.Ec_Gamma[-1], flatband.Ec_L[-1], flatband.Ec_X[-1],
+                parameters.Nc_Gamma[-1], parameters.Nc_L[-1], parameters.Nc_X[-1],
+                parameters.nonparabolicity[-1], Vt, approx)
+        b = scalar_charge_neutrality(psi0[-1], p0, n0, dp0, dn0,
+                                     parameters.Nnet[-1])
     elif isinstance(device._contacts[-1], SchottkyContact):
         wf = device._contacts[-1].work_function
         b = parameters.electron_affinity[-1] + flatband.Ec[-1] - wf #- V
@@ -396,7 +393,7 @@ def _poisson_zero_current(device, V, phi_p, phi_n, T=300., N=1000,
     dEc_X_dx = numpy.gradient(Ec_X)/dx
     dEc_dx = numpy.gradient(Ec)/dx
     logger.debug('psi = %s', str(psi))
-    return ZeroCurrentSolution(T, N, x,
+    return ZeroCurrentSolution(V, T, N, x,
                                parameters.Na, parameters.Nd,
                                phi_p, phi_n,
                                Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
@@ -443,38 +440,15 @@ def poisson_eq(device, T=300., N=1000, approx='parabolic'):
     s : EquilibriumSolution
         Equilibrium solution
     '''
-    V = phi_p = phi_n = 0.
-    zcs = _poisson_zero_current(device, V, phi_p, phi_n, T, N, approx)
+    V = phi_p = phi_n = numpy.zeros(N)
+    
+    # Use charge neutrality to guess psi.
+    psi0 = charge_neutrality(device, V, phi_p, phi_n, T, N, approx)
+    
+    zcs = _poisson_zero_current(device, psi0, phi_p, phi_n, 0., T, N, approx)
     return EquilibriumSolution(zcs)
 
-def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
-    '''
-    Uses Newton's method to solve the self-consistent electrostatic Poisson
-    equation for the given device at a given bias voltage under the
-    zero-current approximation.
-
-    Arguments
-    ---------
-    device : TwoTerminalDevice
-        Device
-    V : float
-        Bias voltage, i.e. left/top contact bias - right/bottom contact bias
-    T : float (default=300.)
-        Device temperature
-    N : int (default=1000)
-        Number of grid points
-    approx : str (default='parabolic')
-        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
-        bands approximation (fastest). If 'parabolic', use the parabolic
-        bands approximation (fast). If 'kane', include Gamma-valley
-        non-parabolicity under the k.p Kane approximation (slow).
-
-    Returns
-    -------
-    s : EquilibriumSolution
-        Equilibrium solution
-    '''
-    Vt = k*T  # eV
+def get_phis(device, V, T, N):
     phi_p = numpy.empty(N)
     phi_n = numpy.empty(N)
 
@@ -500,5 +474,61 @@ def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
 
     if (phi_p == numpy.inf).all() and (phi_n == -numpy.inf).all():
         raise ValueError('Fp or Fn must be specified for at least one layer')
+    
+    return phi_p, phi_n
 
-    return _poisson_zero_current(device, V, phi_p, phi_n, T, N, approx)
+def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
+    '''
+    Uses Newton's method to solve the self-consistent electrostatic Poisson
+    equation for the given device at a given bias voltage under the
+    zero-current approximation.
+
+    Arguments
+    ---------
+    device : TwoTerminalDevice
+        Device
+    V : float
+        Bias voltage, i.e. left/top contact bias - right/bottom contact bias
+    T : float (default=300.)
+        Device temperature
+    N : int (default=1000)
+        Number of grid points
+    approx : str (default='parabolic')
+        If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+        bands approximation (fastest). If 'parabolic', use the parabolic
+        bands approximation (fast). If 'kane', include Gamma-valley
+        non-parabolicity under the k.p Kane approximation (slow).
+
+    Returns
+    -------
+    s : ZeroCurrentSolution
+        Zero current solution
+    '''
+    phi_p, phi_n = get_phis(device, V, T, N)
+    
+    # Use charge neutrality to guess psi.
+    psi0 = charge_neutrality(device, V, phi_p, phi_n, T, N, approx)
+
+    return _poisson_zero_current(device, psi0, phi_p, phi_n, V, T, N, approx)
+
+def capacitance_zero_current(device, V, dV, T=300., N=1000, approx='parabolic'):
+    '''
+    Calculate the capacitance under the zero-current approximation.
+    '''
+    s1 = device.get_zero_current(V, T, N, approx)
+    phi_p, phi_n = get_phis(device, V+dV, T, N)
+    s2 = _poisson_zero_current(device, s1.psi, phi_p, phi_n, V+dV, T, N, approx)
+    zeros = numpy.zeros(N)
+    drho = ((s2.p - s2.n) - (s1.p - s1.n))*q
+    # The capacitance should be calculated from the charge on only one plate.
+    # We could take the absolute value, integrate, and then divide by 2, but
+    # that doesn't handle one side of the junction extending to the edge of the
+    # the simulated region. Instead, we take the larger of the positive or
+    # negative dQ.
+    drho_positive = numpy.where(drho > 0., drho, zeros)
+    drho_negative = numpy.where(drho < 0., drho, zeros)
+    dQ_positive = numpy.trapz(drho_positive, dx=s1.x[1])
+    dQ_negative = numpy.trapz(drho_negative, dx=s1.x[1])
+    dQ = max(dQ_positive, -dQ_negative)
+    C = dQ / dV
+    return C

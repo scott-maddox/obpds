@@ -43,12 +43,13 @@ class FlatbandSolution(Solution):
         self.Ei = Ei
 
 class ZeroCurrentSolution(Solution):
-    def __init__(self, T, N, x, Na, Nd,
+    def __init__(self, V, T, N, x, Na, Nd,
                  Fp, Fn,
                  Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
                  dEv_dx, dEc_Gamma_dx, dEc_L_dx, dEc_X_dx, dEc_dx,
                  psi, field,
                  n_Gamma, n_L, n_X, n, p):
+        self.V = V
         self.T = T
         self.N = N
         self.x = x
