@@ -22,12 +22,15 @@ import numpy
 
 from .layer import CompoundLayer
 from .contact import Contact, OhmicContact
-from .solver import poisson_eq, poisson_zero_current
+from .solver import poisson_eq, poisson_zero_current, capacitance_zero_current
 from .solution import ParametersSolution, FlatbandSolution
 
 
 __all__ = ['TwoTerminalDevice']
 
+
+# electron charge
+q = 1.602176565e-19 # C
 
 class TwoTerminalDevice(object):
     '''
@@ -439,3 +442,37 @@ class TwoTerminalDevice(object):
             self.show_zero_current(V, T, N, approx)
         s = self.get_zero_current(V, T, N, approx)
         self._save_solution(s, path)
+    
+    def _calc_capacitance(self, V, T=300, N=1000, approx='parabolic'):
+        return capacitance_zero_current(self, V, T, N, approx)
+    
+    def get_capacitance(self, V, T=300, N=1000, approx='parabolic'):
+        if (V, T, N, approx) in self._capacitance:
+            return self._capacitance[(V, T, N, approx)]
+        else:
+            s = self._calc_capacitance(V, T, N, approx)
+            self._capacitance[(V, T, N, approx)] = s
+            return s.C
+    
+    def get_cv(self, Vstart, Vstop, Vnum=100, dV=1e-4, T=300, N=1000,
+               approx='parabolic'):
+        V = numpy.linspace(Vstart, Vstop, Vnum)
+        C = numpy.empty_like(V)
+        for i in xrange(V.size):
+            C[i] = self.get_capacitance(V[i], dV, T, N, approx)
+        return C, V
+
+    def show_cv(self, Vstart, Vstop, Vnum=100, dV=1e-4, T=300, N=1000,
+                approx='parabolic'):
+        C, V = self.get_cv(Vstart, Vstop, Vnum, dV, T, N, approx)
+        import matplotlib.pyplot as plt
+        _, ax1 = plt.subplots(1, 1, figsize=(5, 4), tight_layout=True)
+            
+        ax1.set_ymargin(0.05)
+        ax1.plot(V, C, 'r-')
+#         ax1.axhline(0, color='grey')
+        ax1.set_ylabel('Capacitance (F/cm**2)')
+        ax1.set_xlabel('Bias (V)')
+        ax1.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        
+        plt.show()
