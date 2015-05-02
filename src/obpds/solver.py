@@ -275,7 +275,7 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
     assert not numpy.isnan(psi0).any()
     return psi0
 
-def _poisson_zero_current(device, psi0, phi_p, phi_n, T=300., N=1000,
+def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
                           approx='parabolic'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
@@ -393,7 +393,7 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, T=300., N=1000,
     dEc_X_dx = numpy.gradient(Ec_X)/dx
     dEc_dx = numpy.gradient(Ec)/dx
     logger.debug('psi = %s', str(psi))
-    return ZeroCurrentSolution(T, N, x,
+    return ZeroCurrentSolution(V, T, N, x,
                                parameters.Na, parameters.Nd,
                                phi_p, phi_n,
                                Ev, Ec_Gamma, Ec_L, Ec_X, Ec, Ei,
@@ -445,8 +445,37 @@ def poisson_eq(device, T=300., N=1000, approx='parabolic'):
     # Use charge neutrality to guess psi.
     psi0 = charge_neutrality(device, V, phi_p, phi_n, T, N, approx)
     
-    zcs = _poisson_zero_current(device, psi0, phi_p, phi_n, T, N, approx)
+    zcs = _poisson_zero_current(device, psi0, phi_p, phi_n, 0., T, N, approx)
     return EquilibriumSolution(zcs)
+
+def get_phis(device, V, T, N):
+    phi_p = numpy.empty(N)
+    phi_n = numpy.empty(N)
+
+    Fp, Fn = device._get_Fp_Fn(N)
+    for i in xrange(N):
+        if Fp[i] is None:
+            phi_p[i] = numpy.inf
+        elif Fp[i] == 'left':
+            phi_p[i] = 0.
+        elif Fp[i] == 'right':
+            phi_p[i] = V
+        else:
+            raise RuntimeError('Invalid value for Fp: {}'.format(Fp[i]))
+
+        if Fn[i] is None:
+            phi_n[i] = -numpy.inf
+        elif Fn[i] == 'left':
+            phi_n[i] = 0.
+        elif Fn[i] == 'right':
+            phi_n[i] = V
+        else:
+            raise RuntimeError('Invalid value for Fp: {}'.format(Fp[i]))
+
+    if (phi_p == numpy.inf).all() and (phi_n == -numpy.inf).all():
+        raise ValueError('Fp or Fn must be specified for at least one layer')
+    
+    return phi_p, phi_n
 
 def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
     '''
@@ -475,33 +504,31 @@ def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
     s : ZeroCurrentSolution
         Zero current solution
     '''
-    phi_p = numpy.empty(N)
-    phi_n = numpy.empty(N)
-
-    Fp, Fn = device._get_Fp_Fn(N)
-    for i in xrange(N):
-        if Fp[i] is None:
-            phi_p[i] = numpy.inf
-        elif Fp[i] == 'left':
-            phi_p[i] = 0.
-        elif Fp[i] == 'right':
-            phi_p[i] = V
-        else:
-            raise RuntimeError('Invalid value for Fp: {}'.format(Fp[i]))
-
-        if Fn[i] is None:
-            phi_n[i] = -numpy.inf
-        elif Fn[i] == 'left':
-            phi_n[i] = 0.
-        elif Fn[i] == 'right':
-            phi_n[i] = V
-        else:
-            raise RuntimeError('Invalid value for Fp: {}'.format(Fp[i]))
-
-    if (phi_p == numpy.inf).all() and (phi_n == -numpy.inf).all():
-        raise ValueError('Fp or Fn must be specified for at least one layer')
+    phi_p, phi_n = get_phis(device, V, T, N)
     
     # Use charge neutrality to guess psi.
     psi0 = charge_neutrality(device, V, phi_p, phi_n, T, N, approx)
 
-    return _poisson_zero_current(device, psi0, phi_p, phi_n, T, N, approx)
+    return _poisson_zero_current(device, psi0, phi_p, phi_n, V, T, N, approx)
+
+def capacitance_zero_current(device, V, dV, T=300., N=1000, approx='parabolic'):
+    '''
+    Calculate the capacitance under the zero-current approximation.
+    '''
+    s1 = device.get_zero_current(V, T, N, approx)
+    phi_p, phi_n = get_phis(device, V+dV, T, N)
+    s2 = _poisson_zero_current(device, s1.psi, phi_p, phi_n, V+dV, T, N, approx)
+    zeros = numpy.zeros(N)
+    drho = ((s2.p - s2.n) - (s1.p - s1.n))*q
+    # The capacitance should be calculated from the charge on only one plate.
+    # We could take the absolute value, integrate, and then divide by 2, but
+    # that doesn't handle one side of the junction extending to the edge of the
+    # the simulated region. Instead, we take the larger of the positive or
+    # negative dQ.
+    drho_positive = numpy.where(drho > 0., drho, zeros)
+    drho_negative = numpy.where(drho < 0., drho, zeros)
+    dQ_positive = numpy.trapz(drho_positive, dx=s1.x[1])
+    dQ_negative = numpy.trapz(drho_negative, dx=s1.x[1])
+    dQ = max(dQ_positive, -dQ_negative)
+    C = dQ / dV
+    return C
