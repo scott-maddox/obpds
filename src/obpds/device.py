@@ -519,6 +519,8 @@ class TwoTerminalDevice(object):
     def show_cv(self, Vstart, Vstop, Vnum=50, dV=1e-3, T=300, N=1000,
                 approx='parabolic'):
         C, V = self.get_cv(Vstart, Vstop, Vnum, dV, T, N, approx)
+        rCs = 1/C**2
+        ndV_drCs = (-1.)/numpy.gradient(rCs, (V[1]-V[0]))
         import matplotlib.pyplot as plt
         _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
                                           figsize=(10, 10), tight_layout=True)
@@ -529,16 +531,54 @@ class TwoTerminalDevice(object):
         ax1.set_ylabel('Capacitance (F/cm$^2$)')
         
         ax2.set_ymargin(0.05)
-        ax2.plot(V, 1/C**2, 'r-')
+        ax2.plot(V, rCs, 'r-')
         ax2.set_ylabel('1/C$^2$ (cm$^4$/F$^2$)')
         
         ax3.set_ymargin(0.05)
         try:
-            ax3.semilogy(V, -dV/numpy.gradient(1/C**2), 'r-')
+            ax3.semilogy(V, ndV_drCs, 'r-')
         except:
             ax3.set_yscale('linear')
-#             ax3.plot(V, -dV/numpy.gradient(1/C**2), 'r-')
+#             ax3.plot(V, dV/numpy.gradient(1/C**2), 'r-')
         ax3.set_ylabel('-dV/d(1/C$^2$)')
         ax3.set_xlabel('Bias (V)')
         
         plt.show()
+    
+    def save_cv(self, path, Vstart, Vstop, Vnum=50, dV=1e-3, show=False,
+                T=300, N=1000, approx='parabolic'):
+        C, V = self.get_cv(Vstart, Vstop, Vnum, dV, T, N, approx)
+        rCs = 1/C**2
+        ndV_drCs = (-1.)/numpy.gradient(rCs, (V[1]-V[0]))
+        if show:
+            import matplotlib.pyplot as plt
+            _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
+                                              figsize=(10, 10), tight_layout=True)
+                
+            ax1.set_ymargin(0.05)
+            ax1.plot(V, C, 'r-')
+    #         ax1.axhline(0, color='grey')
+            ax1.set_ylabel('Capacitance (F/cm$^2$)')
+            
+            ax2.set_ymargin(0.05)
+            ax2.plot(V, rCs, 'r-')
+            ax2.set_ylabel('1/C$^2$ (cm$^4$/F$^2$)')
+            
+            ax3.set_ymargin(0.05)
+            try:
+                ax3.semilogy(V, ndV_drCs, 'r-')
+            except:
+                ax3.set_yscale('linear')
+    #             ax3.plot(V, dV/numpy.gradient(1/C**2), 'r-')
+            ax3.set_ylabel('-dV/d(1/C$^2$)')
+            ax3.set_xlabel('Bias (V)')
+            
+            plt.show()
+        
+        header = 'V\tC/A\t1/C^2\tdV/d(1/C^2)\n'
+        template = '{V}\t{C}\t{rCs}\t{ndV_drCs}\n'
+        with open(path, 'w') as f:
+            f.write(header)
+            for i in xrange(V.size):
+                f.write(template.format(V=V[i], C=C[i],
+                                        rCs=rCs[i], ndV_drCs=ndV_drCs[i]))
