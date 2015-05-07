@@ -9,6 +9,8 @@ ignore/
 *.bak
 
 # compiled source
+*.c
+*.so
 *.pyc
 
 # build directories
