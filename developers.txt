@@ -3,6 +3,13 @@ Git Branching Model
 I'm using the Git branching model described
 [here](http://nvie.com/posts/a-successful-git-branching-model/).
 
+Profiling
+=========
+
+To create a call graph, run the following from the src directory::
+
+    pycallgraph graphviz -- ./mypythonscript.py
+
 How To Release a New Version
 ============================
 
