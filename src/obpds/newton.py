@@ -84,12 +84,12 @@ def scalar_newton(G, A, u0, rtol=0, atol=1e-6, tau=0.5, max_iter=100):
     for k in xrange(1, max_iter+1):
         # Step 2. Calculate the delta.
         duk = -Gk/Ak
-        logger.debug('duk = %s', duk)
+#         logger.debug('duk = %s', duk)
 
         aerr = numpy.abs(duk)
-        logger.debug('aerr = {}'.format(aerr))
+        logger.debug('aerr = %e', aerr)
         if aerr < atol:
-            logger.info('converged after {} iterations'.format(k))
+            logger.info('converged after %i iterations', k)
             return NewtonResult(value=uk + duk, num_iter=k, converged=True)
         
         while True:
@@ -104,18 +104,18 @@ def scalar_newton(G, A, u0, rtol=0, atol=1e-6, tau=0.5, max_iter=100):
             # Step 4. Adjust the damping parameter.
             if 1 - xi_kp < tau * sk:
                 sk /= 2.
-                logger.debug('decreasing sk to {}'.format(sk))
+                logger.debug('decreasing sk to %e', sk)
                 continue  # go to Step 3.
             else:
                 sk = sk/(sk+(1.-sk)*xi_kp/2.)
-                logger.debug('increasing sk to {}'.format(sk))
+                logger.debug('increasing sk to %e', sk)
                 break  # go to Step 5.
 
         # Step 5. Quit if converged; iterate if not.
         rerr = numpy.abs(duk/ukp)
-        logger.debug('rerr = {}'.format(rerr))
+        logger.debug('rerr = %f', rerr)
         if rerr < rtol:
-            logger.info('converged after {} iterations'.format(k))
+            logger.info('converged after %i iterations', k)
             return NewtonResult(value=ukp, num_iter=k, converged=True)
         else:
             uk = ukp
@@ -125,7 +125,7 @@ def scalar_newton(G, A, u0, rtol=0, atol=1e-6, tau=0.5, max_iter=100):
             continue  # go to Step 2.
 
     # Failed to converge, but return what we have.
-    logger.warn('failed to converge after {} iterations'.format(k))
+    logger.warn('failed to converge after %i iterations', k)
     return NewtonResult(value=ukp, num_iter=k, converged=False)
 
 
@@ -184,13 +184,13 @@ def newton(G, A, u0, rtol=0, atol=1e-6, tau=0.5, max_iter=100):
     for k in xrange(1, max_iter+1):
         # Step 2. Calculate the delta.
         duk = spsolve(Ak, -Gk, use_umfpack=True)
-        logger.debug('duk = %s', duk)
+#         logger.debug('duk = %s', duk)
 
         # Check for convergence using absolute tolerance
         aerr = numpy.abs(duk).max()
-        logger.debug('aerr = {}'.format(aerr))
+        logger.debug('aerr = %f', aerr)
         if aerr < atol:
-            logger.info('converged after {} iterations'.format(k))
+            logger.info('converged after %i iterations', k)
             return NewtonResult(value=uk + duk, num_iter=k, converged=True)
         
         while True:
@@ -205,19 +205,19 @@ def newton(G, A, u0, rtol=0, atol=1e-6, tau=0.5, max_iter=100):
             # Step 4. Adjust the damping parameter.
             if 1 - xi_kp < tau * sk:
                 sk /= 2.
-                logger.debug('decreasing sk to {}'.format(sk))
+                logger.debug('decreasing sk to %e', sk)
                 continue  # go to Step 3.
             else:
                 sk = sk/(sk+(1.-sk)*xi_kp/2.)
-                logger.debug('increasing sk to {}'.format(sk))
+                logger.debug('increasing sk to %e', sk)
                 break  # go to Step 5.
 
         # Step 5. Quit if converged; iterate if not.
         # Check for convergence using relative tolerance
         rerr = numpy.abs(duk/ukp).max()
-        logger.debug('rerr = {}'.format(rerr))
+        logger.debug('rerr = %e', rerr)
         if rerr < rtol:
-            logger.info('converged after {} iterations'.format(k))
+            logger.info('converged after %i iterations', k)
             return NewtonResult(value=ukp, num_iter=k, converged=True)
         else:
             uk = ukp
@@ -227,5 +227,5 @@ def newton(G, A, u0, rtol=0, atol=1e-6, tau=0.5, max_iter=100):
             continue  # go to Step 2.
 
     # Failed to converge, but return what we have.
-    logger.warn('failed to converge after {} iterations'.format(k))
+    logger.warn('failed to converge after %i iterations', k)
     return NewtonResult(value=ukp, num_iter=k, converged=False)

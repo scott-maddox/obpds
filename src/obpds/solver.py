@@ -244,7 +244,7 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
                 residual[i] = parameters.ni[i]
             else:
                 psi0[i] = flatband.Ei[i]
-    logger.debug('psi0 before newton = %s', str(psi0))
+    logger.debug('psi0 before newton = %s', psi0)
     ## Refine with newton method, in case satallite valleys or
     ## band non-parabolicity are significant.
 #     global last_psi
@@ -271,7 +271,7 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
         return spdiags(df_dpsi, [0], N, N, format='csr')
     result = newton(G0, A0, psi0)
     psi0 = result.value  # eV
-    logger.debug('psi0 = %s', str(psi0))
+    logger.debug('psi0 = %s', psi0)
     assert not numpy.isnan(psi0).any()
     return psi0
 
@@ -392,7 +392,7 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
     dEc_L_dx = numpy.gradient(Ec_L)/dx
     dEc_X_dx = numpy.gradient(Ec_X)/dx
     dEc_dx = numpy.gradient(Ec)/dx
-    logger.debug('psi = %s', str(psi))
+    logger.debug('psi = %s', psi)
     return ZeroCurrentSolution(V, T, N, x,
                                parameters.Na, parameters.Nd,
                                phi_p, phi_n,
