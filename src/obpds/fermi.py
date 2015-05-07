@@ -19,6 +19,7 @@
 #############################################################################
 import numpy
 from numpy import exp, log, sqrt, pi
+from fd import vfd1h, vdfd1h, vgfd1h, vdgfd1h
 from fdint import fdk, dfdk
 from ifdint import ifd1h
 
@@ -27,7 +28,7 @@ __all__ = ['boltz_p', 'boltz_n', 'boltz_phi_p', 'boltz_phi_n',
            'boltz_dp', 'boltz_dn',
            'para_p', 'para_n', 'para_phi_p', 'para_phi_n',
            'para_dp', 'para_dn',
-           'npfermi', 'kane_n', 'kane_dn']
+           'kane_n', 'kane_dn']
 
 # Boltzmann approximation to the Fermi-Dirac integral for a bulk
 # semiconductor with parabolic bands.
@@ -76,71 +77,20 @@ def para_dp(phi_p, Ev, Nv, Vt):
 def para_dn(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
     return 0.5*fdk(-0.5,phi)*(Nc*1.1283791670955126)/Vt
-
-def _npfermi(phi, alpha):
-    '''
-    Approximation of the Fermi-Dirac integral for a bulk semiconductor with
-    a non-parabolic band. This approximation degrades significantly for
-    alpha > 0.07, particularly at phi ~= 15.
-    '''
-    if phi < 20:
-        # taylor series approximation around alpha = 0
-        return (fdk(0.5,phi)+
-                 alpha*(2.5*fdk(1.5,phi)+
-                 alpha*(0.875*fdk(2.5,phi)+
-                 alpha*(-0.1875*fdk(3.5,phi)+
-                 alpha*(0.0859375*fdk(4.5,phi)+
-                 alpha*(-0.05078125*fdk(5.5,phi)+
-                 alpha*(0.0341796875*fdk(6.5,phi)+
-                 alpha*(-0.02490234375*fdk(7.5,phi)+
-                 alpha*(0.019134521484375*fdk(8.5,phi)+
-                 alpha*(-0.0152740478515625*fdk(9.5,phi)+
-                 alpha*(0.012546539306640625*fdk(10.5,phi)
-                        )))))))))))
-    else:
-        # sommerfeld approximation for phi -> inf
-        return 0.6666666666666666*(phi*(1.+alpha*phi))**1.5
-npfermi = numpy.vectorize(_npfermi)
-
-def _dnpfermi(phi, alpha):
-    '''
-    Approximation of the derivative of the Fermi-Dirac integral for a bulk
-    semiconductor with a non-parabolic band. This approximation degrades
-    significantly for alpha > 0.07, particularly at phi ~= 15.
-    '''
-    if phi < 20:
-        # taylor series approximation around alpha = 0
-        return (dfdk(0.5,phi)+
-                 alpha*(2.5*dfdk(1.5,phi)+
-                 alpha*(0.875*dfdk(2.5,phi)+
-                 alpha*(-0.1875*dfdk(3.5,phi)+
-                 alpha*(0.0859375*dfdk(4.5,phi)+
-                 alpha*(-0.05078125*dfdk(5.5,phi)+
-                 alpha*(0.0341796875*dfdk(6.5,phi)+
-                 alpha*(-0.02490234375*dfdk(7.5,phi)+
-                 alpha*(0.019134521484375*dfdk(8.5,phi)+
-                 alpha*(-0.0152740478515625*dfdk(9.5,phi)+
-                 alpha*(0.012546539306640625*dfdk(10.5,phi)
-                        )))))))))))
-    else:
-        # sommerfeld approximation for phi -> inf
-        return (2. * (phi*(alpha*phi + 1))**1.5 * 
-                (1.0*alpha*phi + 0.5) / (phi*(alpha*phi + 1)))
-dnpfermi = numpy.vectorize(_dnpfermi)
     
 def kane_n(phi_n, Ec, Nc, alpha, Vt):
     '''
     Non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return npfermi(phi, alpha)*(Nc*1.1283791670955126)
+    return vgfd1h(phi, alpha)*(Nc*1.1283791670955126)
 
 def kane_dn(phi_n, Ec, Nc, alpha, Vt):
     '''
     Derivative of the non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return dnpfermi(phi, alpha)*(Nc*1.1283791670955126)/Vt
+    return vdgfd1h(phi, alpha)*(Nc*1.1283791670955126)/Vt
 
 if __name__ == "__main__":
     from scipy.integrate import quad
@@ -175,18 +125,10 @@ if __name__ == "__main__":
 
     # non-parabolic
     phi = numpy.linspace(-30, 100, 1000)
-    alpha = 0.07
-    ax.semilogy(phi, npfermi(phi, alpha), 'g')
-    ax.semilogy(phi, dnpfermi(phi, alpha), 'g:')
+    alpha = numpy.empty_like(phi)
+    alpha.fill(0.07)
+    ax.semilogy(phi, vgfd1h(phi, alpha), 'g')
+    ax.semilogy(phi, vdgfd1h(phi, alpha), 'g:')
     ax.semilogy(phi, num_npfermi(phi, alpha), 'g--', lw=2)
 
-    phi = -5
-    print fdk(0.5,phi)/_num_fermi(phi, alpha)
-    print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
-    phi = 5
-    print fdk(0.5,phi)/_num_fermi(phi, alpha)
-    print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
-    phi = 30
-    print fdk(0.5,phi)/_num_fermi(phi, alpha)
-    print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
     plt.show()
