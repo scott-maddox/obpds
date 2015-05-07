@@ -92,23 +92,24 @@ def jacobian__Fpsi__psi(df_dpsi, dx):
     '''
     N = df_dpsi.size
     dx2 = dx**2
-    data = []
-    rows = []
-    cols = []
+    data = numpy.empty((N-2)*3+2)
+    rows = numpy.empty((N-2)*3+2)
+    cols = numpy.empty((N-2)*3+2)
 
     # Dirichlet boundary condition
+    j = 0
     i = 0
-    rows.append(i); cols.append(i); data.append(1)
+    rows[i] = j; cols[i] = j; data[i] = 1; i += 1
 
     # The interior matrix elements
-    for i in xrange(1, N-1):
-        rows.append(i); cols.append(i-1); data.append(1)
-        rows.append(i); cols.append( i ); data.append(-2 + df_dpsi[i]*dx2)
-        rows.append(i); cols.append(i+1); data.append(1)
+    for j in xrange(1, N-1):
+        rows[i] = j; cols[i] = j-1; data[i] = 1                  ; i += 1
+        rows[i] = j; cols[i] =  j ; data[i] = -2 + df_dpsi[j]*dx2; i += 1
+        rows[i] = j; cols[i] = j+1; data[i] = 1                  ; i += 1
 
     # Dirichlet boundary condition
-    i = N-1
-    rows.append(i); cols.append(i); data.append(1)
+    j = N-1
+    rows[i] = j; cols[i] = j; data[i] = 1; i += 1
     
     A = csr_matrix((data, (rows, cols)), (N, N))
     return A
