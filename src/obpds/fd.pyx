@@ -33,7 +33,7 @@ cimport numpy as np
 from libc.math cimport exp, sqrt
 
 @cython.cdivision(True)
-cpdef inline double fdm9h(double phi):
+cdef inline double fdm9h(double phi):
     cdef double factor = -2e0/7e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -207,7 +207,7 @@ cpdef inline double fdm9h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fdm7h(double phi):
+cdef inline double fdm7h(double phi):
     cdef double factor = -2e0/5e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -373,7 +373,7 @@ cpdef inline double fdm7h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fdm5h(double phi):
+cdef inline double fdm5h(double phi):
     cdef double factor = -2e0/3e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -527,7 +527,7 @@ cpdef inline double fdm5h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fdm3h(double phi):
+cdef inline double fdm3h(double phi):
     cdef double factor = -2e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -675,7 +675,7 @@ cpdef inline double fdm3h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fdm1h(double phi):
+cdef inline double fdm1h(double phi):
     cdef double factor = 2e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -814,7 +814,7 @@ cpdef inline double fdm1h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd1h(double phi):
+cdef inline double fd1h(double phi):
     cdef double factor = 2e0/3e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -953,7 +953,7 @@ cpdef inline double fd1h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd3h(double phi):
+cdef inline double fd3h(double phi):
     cdef double factor = 2e0/5e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1092,7 +1092,7 @@ cpdef inline double fd3h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd5h(double phi):
+cdef inline double fd5h(double phi):
     cdef double factor = 2e0/7e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1227,7 +1227,7 @@ cpdef inline double fd5h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd7h(double phi):
+cdef inline double fd7h(double phi):
     cdef double factor = 2e0/9e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1364,7 +1364,7 @@ cpdef inline double fd7h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd9h(double phi):
+cdef inline double fd9h(double phi):
     cdef double factor = 2e0/11e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1501,7 +1501,7 @@ cpdef inline double fd9h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd11h(double phi):
+cdef inline double fd11h(double phi):
     cdef double factor = 2e0/13e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1640,7 +1640,7 @@ cpdef inline double fd11h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd13h(double phi):
+cdef inline double fd13h(double phi):
     cdef double factor = 2e0/15e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1785,7 +1785,7 @@ cpdef inline double fd13h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd15h(double phi):
+cdef inline double fd15h(double phi):
     cdef double factor = 2e0/17e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -1932,7 +1932,7 @@ cpdef inline double fd15h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd17h(double phi):
+cdef inline double fd17h(double phi):
     cdef double factor = 2e0/19e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -2077,7 +2077,7 @@ cpdef inline double fd17h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd19h(double phi):
+cdef inline double fd19h(double phi):
     cdef double factor = 2e0/21e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -2227,7 +2227,7 @@ cpdef inline double fd19h(double phi):
     return fd
 
 @cython.cdivision(True)
-cpdef inline double fd21h(double phi):
+cdef inline double fd21h(double phi):
     cdef double factor = 2e0/23e0   # = 1/(k+1)
     cdef double exp_phi, t, fd, s, w
     if(phi < -2e0):
@@ -2377,59 +2377,59 @@ cpdef inline double fd21h(double phi):
     return fd
     
 @cython.cdivision(True)
-cpdef inline double dfd1h(double phi):
+cdef inline double dfd1h(double phi):
     '''
     Approximation of the derivative of the Fermi-Dirac integral for a bulk
     semiconductor with a parabolic band
     '''
-    return 1.5*fdm1h(phi)
+    return 0.5*fdm1h(phi)
 
 @cython.cdivision(True)
-cpdef inline double gfd1h(double phi, double alpha):
+cdef inline double gfd1h(double phi, double alpha):
     '''
     Approximation of the Fermi-Dirac integral for a bulk semiconductor with
     a non-parabolic band. This approximation degrades significantly for
     alpha > 0.07, particularly at phi ~= 15.
     '''
-    if phi < 20e0:
+    if(phi < 20e0):
         # taylor series approximation around alpha = 0
         return (fd1h(phi)+
-                 alpha*(2.5*fd3h(phi)+
-                 alpha*(0.875*fd5h(phi)+
-                 alpha*(-0.1875*fd7h(phi)+
-                 alpha*(0.0859375*fd9h(phi)+
-                 alpha*(-0.05078125*fd11h(phi)+
-                 alpha*(0.0341796875*fd13h(phi)+
-                 alpha*(-0.02490234375*fd15h(phi)+
-                 alpha*(0.019134521484375*fd17h(phi)+
-                 alpha*(-0.0152740478515625*fd19h(phi)+
-                 alpha*(0.012546539306640625*fd21h(phi)
-                        )))))))))))
+                alpha*(2.5*fd3h(phi)+
+                alpha*(0.875*fd5h(phi)+
+                alpha*(-0.1875*fd7h(phi)+
+                alpha*(0.0859375*fd9h(phi)+
+                alpha*(-0.05078125*fd11h(phi)+
+                alpha*(0.0341796875*fd13h(phi)+
+                alpha*(-0.02490234375*fd15h(phi)+
+                alpha*(0.019134521484375*fd17h(phi)+
+                alpha*(-0.0152740478515625*fd19h(phi)+
+                alpha*(0.012546539306640625*fd21h(phi)
+                       )))))))))))
     else:
         # sommerfeld approximation for phi -> inf
         return 0.6666666666666666*(phi*(1.+alpha*phi))**1.5
     
 @cython.cdivision(True)
-cpdef inline double dgfd1h(double phi, double alpha):
+cdef inline double dgfd1h(double phi, double alpha):
     '''
     Approximation of the derivative of the Fermi-Dirac integral for a bulk
     semiconductor with a non-parabolic band. This approximation degrades
     significantly for alpha > 0.07, particularly at phi ~= 15.
     '''
-    if phi < 20:
+    if(phi < 20e0):
         # taylor series approximation around alpha = 0
         return (0.5*fdm1h(phi)+
-                 alpha*(2.5*1.5*fd1h(phi)+
-                 alpha*(0.875*2.5*fd3h(phi)+
-                 alpha*(-0.1875*3.5*fd5h(phi)+
-                 alpha*(0.0859375*4.5*fd7h(phi)+
-                 alpha*(-0.05078125*5.5*fd9h(phi)+
-                 alpha*(0.0341796875*6.5*fd11h(phi)+
-                 alpha*(-0.02490234375*7.5*fd13h(phi)+
-                 alpha*(0.019134521484375*8.5*fd15h(phi)+
-                 alpha*(-0.0152740478515625*9.5*fd17h(phi)+
-                 alpha*(0.012546539306640625*10.5*fd19h(phi)
-                        )))))))))))
+                alpha*(2.5*1.5*fd1h(phi)+
+                alpha*(0.875*2.5*fd3h(phi)+
+                alpha*(-0.1875*3.5*fd5h(phi)+
+                alpha*(0.0859375*4.5*fd7h(phi)+
+                alpha*(-0.05078125*5.5*fd9h(phi)+
+                alpha*(0.0341796875*6.5*fd11h(phi)+
+                alpha*(-0.02490234375*7.5*fd13h(phi)+
+                alpha*(0.019134521484375*8.5*fd15h(phi)+
+                alpha*(-0.0152740478515625*9.5*fd17h(phi)+
+                alpha*(0.012546539306640625*10.5*fd19h(phi)
+                       )))))))))))
     else:
         # sommerfeld approximation for phi -> inf
         return (2. * (phi*(alpha*phi + 1))**1.5 * 
@@ -2437,54 +2437,84 @@ cpdef inline double dgfd1h(double phi, double alpha):
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def vfd1h(np.ndarray[double] phi):
+cdef void vfd1h(np.ndarray[double] phi, np.ndarray[double] out):
     '''
     Vectorized form of fd1h.
     '''
     cdef int imax = phi.shape[0]
-    cdef np.ndarray[double] result = numpy.empty_like(phi)
+    assert imax == out.shape[0]
     cdef int i
     for i in range(imax):
-        result[i] = fd1h(phi[i])
-    return result
+        out[i] = fd1h(phi[i])
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def vdfd1h(np.ndarray[double] phi):
+cdef void vdfd1h(np.ndarray[double] phi, np.ndarray[double] out):
     '''
     Vectorized form of dfd1h.
     '''
     cdef int imax = phi.shape[0]
-    cdef np.ndarray[double] result = numpy.empty_like(phi)
+    assert imax == out.shape[0]
     cdef int i
     for i in range(imax):
-        result[i] = dfd1h(phi[i])
-    return result
+        out[i] = dfd1h(phi[i])
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def vgfd1h(np.ndarray[double] phi, np.ndarray[double] alpha):
+cdef void vgfd1h(np.ndarray[double] phi, np.ndarray[double] alpha,
+            np.ndarray[double] out):
     '''
     Vectorized form of gfd1h.
     '''
     cdef int imax = phi.shape[0]
     assert imax == alpha.shape[0]
-    cdef np.ndarray[double] result = numpy.empty_like(phi)
+    assert imax == out.shape[0]
     cdef int i
     for i in range(imax):
-        result[i] = gfd1h(phi[i], alpha[i])
-    return result
+        out[i] = gfd1h(phi[i], alpha[i])
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def vdgfd1h(np.ndarray[double] phi, np.ndarray[double] alpha):
+cdef void vdgfd1h(np.ndarray[double] phi, np.ndarray[double] alpha,
+            np.ndarray[double] out):
     '''
     Vectorized form of dgfd1h.
     '''
     cdef int imax = phi.shape[0]
     assert imax == alpha.shape[0]
-    cdef np.ndarray[double] result = numpy.empty_like(phi)
+    assert imax == out.shape[0]
     cdef int i
     for i in range(imax):
-        result[i] = dgfd1h(phi[i], alpha[i])
-    return result
+        out[i] = dgfd1h(phi[i], alpha[i])
+
+def para(phi):
+    if isinstance(phi, numpy.ndarray):
+        fd = numpy.empty_like(phi, dtype=numpy.double)
+        vfd1h(phi, fd)
+        return fd
+    else:
+        return fd1h(phi)
+
+def para_d(phi):
+    if isinstance(phi, numpy.ndarray):
+        fd = numpy.empty_like(phi, dtype=numpy.double)
+        vdfd1h(phi, fd)
+        return fd
+    else:
+        return dfd1h(phi)
+
+def kane(phi, alpha):
+    if isinstance(phi, numpy.ndarray):
+        fd = numpy.empty_like(phi, dtype=numpy.double)
+        vgfd1h(phi, alpha, fd)
+        return fd
+    else:
+        return gfd1h(phi, alpha)
+
+def kane_d(phi, alpha):
+    if isinstance(phi, numpy.ndarray):
+        fd = numpy.empty_like(phi, dtype=numpy.double)
+        vdgfd1h(phi, alpha, fd)
+        return fd
+    else:
+        return dgfd1h(phi, alpha)
