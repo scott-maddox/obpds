@@ -19,14 +19,12 @@
 #############################################################################
 import numpy
 from numpy import exp, log, sqrt, pi
-from fd import vfd1h, vdfd1h, vgfd1h, vdgfd1h
-from fdint import fdk, dfdk
-from ifdint import ifd1h
+from .fd import para, para_d, ipara, kane, kane_d
 
 
 __all__ = ['boltz_p', 'boltz_n', 'boltz_phi_p', 'boltz_phi_n',
            'boltz_dp', 'boltz_dn',
-           'para_p', 'para_n', 'para_phi_p', 'para_phi_n',
+           'para_p', 'para_n', 'ipara_p', 'ipara_n',
            'para_dp', 'para_dn',
            'kane_n', 'kane_dn']
 
@@ -58,39 +56,39 @@ def boltz_dn(phi_n, Ec, Nc, Vt):
 assert 2/sqrt(pi) == 1.1283791670955126
 def para_p(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return fdk(0.5,phi)*(Nv*1.1283791670955126)
+    return para(phi)*(Nv*1.1283791670955126)
 
 def para_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return fdk(0.5,phi)*(Nc*1.1283791670955126)
+    return para(phi)*(Nc*1.1283791670955126)
 
-def para_phi_p(p, Ev, Nv, Vt):
-    return Ev - ifd1h(p / (Nv*1.1283791670955126))*Vt
+def ipara_p(p, Ev, Nv, Vt):
+    return Ev - ipara(p / (Nv*1.1283791670955126))*Vt
 
-def para_phi_n(n, Ec, Nc, Vt):
-    return Ec + ifd1h(n / (Nc*1.1283791670955126))*Vt
+def ipara_n(n, Ec, Nc, Vt):
+    return Ec + ipara(n / (Nc*1.1283791670955126))*Vt
 
 def para_dp(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return -0.5*fdk(-0.5,phi)*(Nv*1.1283791670955126)/Vt
+    return para_d(phi)*(Nv*-1.1283791670955126)/Vt
 
 def para_dn(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return 0.5*fdk(-0.5,phi)*(Nc*1.1283791670955126)/Vt
+    return para_d(phi)*(Nc*1.1283791670955126)/Vt
     
 def kane_n(phi_n, Ec, Nc, alpha, Vt):
     '''
     Non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return vgfd1h(phi, alpha)*(Nc*1.1283791670955126)
+    return kane(phi, alpha)*(Nc*1.1283791670955126)
 
 def kane_dn(phi_n, Ec, Nc, alpha, Vt):
     '''
     Derivative of the non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return vdgfd1h(phi, alpha)*(Nc*1.1283791670955126)/Vt
+    return kane_d(phi, alpha)*(Nc*1.1283791670955126)/Vt
 
 if __name__ == "__main__":
     from scipy.integrate import quad
@@ -106,7 +104,6 @@ if __name__ == "__main__":
         return result
     num_npfermi = numpy.vectorize(_num_npfermi)
 
-    import numpy
     import matplotlib.pyplot as plt
     _, ax = plt.subplots()
     # boltzmann
@@ -115,8 +112,7 @@ if __name__ == "__main__":
 
     # parabolic
     phi = numpy.linspace(-30, 100, 1000)
-    ax.semilogy(phi, fdk(0.5,phi), 'r')
-    from scipy.integrate import quad
+    ax.semilogy(phi, para(phi), 'r')
     def _num_fd1h(phi):
         result = quad(lambda x: sqrt(x)/(1.+exp(x-phi)), 0., 100.)[0]
         return result
@@ -127,8 +123,8 @@ if __name__ == "__main__":
     phi = numpy.linspace(-30, 100, 1000)
     alpha = numpy.empty_like(phi)
     alpha.fill(0.07)
-    ax.semilogy(phi, vgfd1h(phi, alpha), 'g')
-    ax.semilogy(phi, vdgfd1h(phi, alpha), 'g:')
+    ax.semilogy(phi, kane(phi, alpha), 'g')
+    ax.semilogy(phi, kane_d(phi, alpha), 'g:')
     ax.semilogy(phi, num_npfermi(phi, alpha), 'g--', lw=2)
 
     plt.show()

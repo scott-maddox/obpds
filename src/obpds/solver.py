@@ -227,11 +227,11 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
             phi_ni = phi_n
         if parameters.Nnet[i] < 0.:
             p0 = -parameters.Nnet[i]
-            phi_p0 = para_phi_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
+            phi_p0 = ipara_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
             psi0[i] = phi_p0-phi_pi
         elif parameters.Nnet[i] > 0.:
             n0 = parameters.Nnet[i]
-            phi_n0 = para_phi_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
+            phi_n0 = ipara_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
             psi0[i] = phi_n0-phi_ni
         else:
             if phi_pi != numpy.inf and phi_ni != -numpy.inf:
