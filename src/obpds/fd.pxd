@@ -19,8 +19,10 @@ cdef inline double fd21h(double phi)
 cdef inline double dfd1h(double phi)
 cdef inline double gfd1h(double phi, double alpha)
 cdef inline double dgfd1h(double phi, double alpha)
+cdef inline double ifd1h(double nu)
 cdef void vfd1h(np.ndarray[double] phi, np.ndarray[double] out)
 cdef void vdfd1h(np.ndarray[double] phi, np.ndarray[double] out)
+cdef void vifd1h(np.ndarray[double] nu, np.ndarray[double] out)
 cdef void vgfd1h(np.ndarray[double] phi, np.ndarray[double] alpha,
             np.ndarray[double] out)
 cdef void vdgfd1h(np.ndarray[double] phi, np.ndarray[double] alpha,
