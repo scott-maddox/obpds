@@ -19,15 +19,14 @@
 #############################################################################
 import numpy
 from numpy import exp, log, sqrt, pi
-from fdint import fdk, dfdk
-from ifdint import ifd1h
+from .fd import para, para_d, ipara, kane, kane_d
 
 
 __all__ = ['boltz_p', 'boltz_n', 'boltz_phi_p', 'boltz_phi_n',
            'boltz_dp', 'boltz_dn',
-           'para_p', 'para_n', 'para_phi_p', 'para_phi_n',
+           'para_p', 'para_n', 'ipara_p', 'ipara_n',
            'para_dp', 'para_dn',
-           'npfermi', 'kane_n', 'kane_dn']
+           'kane_n', 'kane_dn']
 
 # Boltzmann approximation to the Fermi-Dirac integral for a bulk
 # semiconductor with parabolic bands.
@@ -57,90 +56,39 @@ def boltz_dn(phi_n, Ec, Nc, Vt):
 assert 2/sqrt(pi) == 1.1283791670955126
 def para_p(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return fdk(0.5,phi)*(Nv*1.1283791670955126)
+    return para(phi)*(Nv*1.1283791670955126)
 
 def para_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return fdk(0.5,phi)*(Nc*1.1283791670955126)
+    return para(phi)*(Nc*1.1283791670955126)
 
-def para_phi_p(p, Ev, Nv, Vt):
-    return Ev - ifd1h(p / (Nv*1.1283791670955126))*Vt
+def ipara_p(p, Ev, Nv, Vt):
+    return Ev - ipara(p / (Nv*1.1283791670955126))*Vt
 
-def para_phi_n(n, Ec, Nc, Vt):
-    return Ec + ifd1h(n / (Nc*1.1283791670955126))*Vt
+def ipara_n(n, Ec, Nc, Vt):
+    return Ec + ipara(n / (Nc*1.1283791670955126))*Vt
 
 def para_dp(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return -0.5*fdk(-0.5,phi)*(Nv*1.1283791670955126)/Vt
+    return para_d(phi)*(Nv*-1.1283791670955126)/Vt
 
 def para_dn(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return 0.5*fdk(-0.5,phi)*(Nc*1.1283791670955126)/Vt
-
-def _npfermi(phi, alpha):
-    '''
-    Approximation of the Fermi-Dirac integral for a bulk semiconductor with
-    a non-parabolic band. This approximation degrades significantly for
-    alpha > 0.07, particularly at phi ~= 15.
-    '''
-    if phi < 20:
-        # taylor series approximation around alpha = 0
-        return (fdk(0.5,phi)+
-                 alpha*(2.5*fdk(1.5,phi)+
-                 alpha*(0.875*fdk(2.5,phi)+
-                 alpha*(-0.1875*fdk(3.5,phi)+
-                 alpha*(0.0859375*fdk(4.5,phi)+
-                 alpha*(-0.05078125*fdk(5.5,phi)+
-                 alpha*(0.0341796875*fdk(6.5,phi)+
-                 alpha*(-0.02490234375*fdk(7.5,phi)+
-                 alpha*(0.019134521484375*fdk(8.5,phi)+
-                 alpha*(-0.0152740478515625*fdk(9.5,phi)+
-                 alpha*(0.012546539306640625*fdk(10.5,phi)
-                        )))))))))))
-    else:
-        # sommerfeld approximation for phi -> inf
-        return 0.6666666666666666*(phi*(1.+alpha*phi))**1.5
-npfermi = numpy.vectorize(_npfermi)
-
-def _dnpfermi(phi, alpha):
-    '''
-    Approximation of the derivative of the Fermi-Dirac integral for a bulk
-    semiconductor with a non-parabolic band. This approximation degrades
-    significantly for alpha > 0.07, particularly at phi ~= 15.
-    '''
-    if phi < 20:
-        # taylor series approximation around alpha = 0
-        return (dfdk(0.5,phi)+
-                 alpha*(2.5*dfdk(1.5,phi)+
-                 alpha*(0.875*dfdk(2.5,phi)+
-                 alpha*(-0.1875*dfdk(3.5,phi)+
-                 alpha*(0.0859375*dfdk(4.5,phi)+
-                 alpha*(-0.05078125*dfdk(5.5,phi)+
-                 alpha*(0.0341796875*dfdk(6.5,phi)+
-                 alpha*(-0.02490234375*dfdk(7.5,phi)+
-                 alpha*(0.019134521484375*dfdk(8.5,phi)+
-                 alpha*(-0.0152740478515625*dfdk(9.5,phi)+
-                 alpha*(0.012546539306640625*dfdk(10.5,phi)
-                        )))))))))))
-    else:
-        # sommerfeld approximation for phi -> inf
-        return (2. * (phi*(alpha*phi + 1))**1.5 * 
-                (1.0*alpha*phi + 0.5) / (phi*(alpha*phi + 1)))
-dnpfermi = numpy.vectorize(_dnpfermi)
+    return para_d(phi)*(Nc*1.1283791670955126)/Vt
     
 def kane_n(phi_n, Ec, Nc, alpha, Vt):
     '''
     Non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return npfermi(phi, alpha)*(Nc*1.1283791670955126)
+    return kane(phi, alpha)*(Nc*1.1283791670955126)
 
 def kane_dn(phi_n, Ec, Nc, alpha, Vt):
     '''
     Derivative of the non-parabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return dnpfermi(phi, alpha)*(Nc*1.1283791670955126)/Vt
+    return kane_d(phi, alpha)*(Nc*1.1283791670955126)/Vt
 
 if __name__ == "__main__":
     from scipy.integrate import quad
@@ -156,7 +104,6 @@ if __name__ == "__main__":
         return result
     num_npfermi = numpy.vectorize(_num_npfermi)
 
-    import numpy
     import matplotlib.pyplot as plt
     _, ax = plt.subplots()
     # boltzmann
@@ -165,8 +112,7 @@ if __name__ == "__main__":
 
     # parabolic
     phi = numpy.linspace(-30, 100, 1000)
-    ax.semilogy(phi, fdk(0.5,phi), 'r')
-    from scipy.integrate import quad
+    ax.semilogy(phi, para(phi), 'r')
     def _num_fd1h(phi):
         result = quad(lambda x: sqrt(x)/(1.+exp(x-phi)), 0., 100.)[0]
         return result
@@ -175,18 +121,10 @@ if __name__ == "__main__":
 
     # non-parabolic
     phi = numpy.linspace(-30, 100, 1000)
-    alpha = 0.07
-    ax.semilogy(phi, npfermi(phi, alpha), 'g')
-    ax.semilogy(phi, dnpfermi(phi, alpha), 'g:')
+    alpha = numpy.empty_like(phi)
+    alpha.fill(0.07)
+    ax.semilogy(phi, kane(phi, alpha), 'g')
+    ax.semilogy(phi, kane_d(phi, alpha), 'g:')
     ax.semilogy(phi, num_npfermi(phi, alpha), 'g--', lw=2)
 
-    phi = -5
-    print fdk(0.5,phi)/_num_fermi(phi, alpha)
-    print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
-    phi = 5
-    print fdk(0.5,phi)/_num_fermi(phi, alpha)
-    print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
-    phi = 30
-    print fdk(0.5,phi)/_num_fermi(phi, alpha)
-    print _npfermi(phi, alpha)/_num_npfermi(phi, alpha)
     plt.show()

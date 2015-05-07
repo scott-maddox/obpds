@@ -9,6 +9,8 @@ ignore/
 *.bak
 
 # compiled source
+*.c
+*.so
 *.pyc
 
 # build directories
@@ -42,3 +44,4 @@ doc/examples/**/_*
 ._*
 ehthumbs.db
 Thumbs.db
+src/obpds/profile/stats

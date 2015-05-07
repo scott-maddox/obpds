@@ -19,6 +19,8 @@
 #############################################################################
 
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
+import numpy
 
 # read in __version__
 exec(open('src/obpds/version.py').read())
@@ -42,8 +44,10 @@ setup(
                         'scipy',
                         'matplotlib',
                         'pint',
-                        'openbandparams >= 0.9',
-                        'fdint'],
+                        'openbandparams >= 0.9'],
       zip_safe=True,
       use_2to3=True,
+      # Cython
+      ext_modules=cythonize("src/obpds/*.pyx"),
+      include_dirs=[numpy.get_include()],
       )
