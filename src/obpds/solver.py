@@ -29,7 +29,7 @@ from .solution import ZeroCurrentSolution, EquilibriumSolution
 from .contact import OhmicContact, SchottkyContact
 
 #TODO: shouldn't this depend on the gradient of eps_r?
-def Fpsi(psi, f, dx, a, b):
+def update_Fpsi(Fpsi, psi, f, dx, a, b):
     '''
     Used to solve the one-dimensional electrostatic Poisson equation,
 
@@ -42,6 +42,8 @@ def Fpsi(psi, f, dx, a, b):
 
     Arguments
     ---------
+    Fpsi : vector of length N
+        Vector to update.
     psi : vector of length N
         last estimate of the electrostatic potential [V]
     f : vector of length N
@@ -52,46 +54,40 @@ def Fpsi(psi, f, dx, a, b):
         left Dirichlet boundary value [V]
     b : float
         right Dirichlet boundary value [V]
-
-    Returns
-    -------
-    Fpsi : vector of length N
-        residual electrostatic potential [V]
     '''
-    dx2 = dx**2
-    B = numpy.empty_like(psi)
-    B[1:-1] = psi[:-2] - 2*psi[1:-1] + psi[2:] + f[1:-1]*dx2
+    dx2 = dx*dx
+    Fpsi[1:-1] = psi[:-2] - 2*psi[1:-1] + psi[2:] + f[1:-1]*dx2
     
     # Dirichlet boundary conditions
-    B[0] = psi[0] - a
-    B[-1] = psi[-1] - b
-    return B
+    Fpsi[0] = psi[0] - a
+    Fpsi[-1] = psi[-1] - b
 
-def jacobian__Fpsi__psi(df_dpsi, dx):
+def get_Fpsi_jacobian(N):
     '''
-    Used to solve the one-dimensional electrostatic Poisson equation,
-
+    Returns a sparse matrix that can be used to solve the one-dimensional
+    electrostatic Poisson equation,
+    
         psi'' = -f,
-
+    
     under Dirichlet (fixed potential) boundary conditions:
 
         psi[0] = a
         psi[-1] = b
-
-    Arguments
-    ---------
-    df_dpsi : vector of length N
-        derivative of the source term with respect to psi [V cm**-3]
-    dx : float
-        grid spacing [cm]
+    
+    Before solving for the potential, the returned sparce matrix should be
+    updated with `update_Fpsi_jacobian`.
+    
+    Parameters
+    ----------
+    N : int
+        number of grid points
 
     Returns
     -------
-    jac__Fpsi__psi : square matrix of width/height N
-        the Jacobian matrix
+    A : csr_matrix
+        Jacobian matrix with width and height of N. This should be updated
+        with `update_Fpsi_jacobian`, before solving for the potential.
     '''
-    N = df_dpsi.size
-    dx2 = dx**2
     data = numpy.empty((N-2)*3+2)
     rows = numpy.empty((N-2)*3+2)
     cols = numpy.empty((N-2)*3+2)
@@ -103,9 +99,9 @@ def jacobian__Fpsi__psi(df_dpsi, dx):
 
     # The interior matrix elements
     for j in xrange(1, N-1):
-        rows[i] = j; cols[i] = j-1; data[i] = 1                  ; i += 1
-        rows[i] = j; cols[i] =  j ; data[i] = -2 + df_dpsi[j]*dx2; i += 1
-        rows[i] = j; cols[i] = j+1; data[i] = 1                  ; i += 1
+        rows[i] = j; cols[i] = j-1; data[i] = 1; i += 1
+        rows[i] = j; cols[i] =  j ; data[i] = 1; i += 1
+        rows[i] = j; cols[i] = j+1; data[i] = 1; i += 1
 
     # Dirichlet boundary condition
     j = N-1
@@ -113,6 +109,31 @@ def jacobian__Fpsi__psi(df_dpsi, dx):
     
     A = csr_matrix((data, (rows, cols)), (N, N))
     return A
+
+def update_Fpsi_jacobian(Fpsi_jacobian, df_dpsi, dx):
+    '''
+    Updates the sparse matrix from `get_Fpsi_jacobian`, for solving the
+    one-dimensional electrostatic Poisson equation,
+
+        psi'' = -f,
+
+    under Dirichlet (fixed potential) boundary conditions:
+
+        psi[0] = a
+        psi[-1] = b
+
+    Arguments
+    ---------
+    Fpsi_jacobian : csr_matrix
+        Jacobian matrix to update (from `get_Fpsi_jacobian`).
+    df_dpsi : vector of length N
+        Derivative of the source term with respect to psi [V cm**-3].
+    dx : float
+        Grid spacing [cm].
+    '''
+    N = df_dpsi.size
+    dx2 = dx*dx
+    Fpsi_jacobian.data[2::3] = -2 + df_dpsi[1:-1]*dx2
 
 
 from .fermi import *
@@ -360,6 +381,8 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
     zeros = numpy.zeros(N)
     ones = numpy.empty(N)
     ones.fill(1.)
+    Fpsi = numpy.empty(N)
+    Fpsi_jacobian = get_Fpsi_jacobian(N)
 #     global last_psi
 #     last_psi = psi0
     def G(psi):
@@ -370,14 +393,15 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
         # replace nan's with 0.
         f = numpy.where(-numpy.isnan(f), f, zeros)
         logger.debug('f = %s', f)
-        _Fpsi = Fpsi(psi, f, dx, a=a, b=b)
-        return _Fpsi
+        update_Fpsi(Fpsi, psi, f, dx, a=a, b=b)
+        return Fpsi
     def A(psi):
         df_dpsi = (dp(psi) - dn(psi))*q_over_eps
         # replace nan's with 1.
         df_dpsi = numpy.where(-numpy.isnan(df_dpsi), df_dpsi, ones)
         logger.debug('df_dpsi = %s', df_dpsi)
-        return jacobian__Fpsi__psi(df_dpsi, dx)
+        update_Fpsi_jacobian(Fpsi_jacobian, df_dpsi, dx)
+        return Fpsi_jacobian
     
     result = newton(G, A, psi0)
     psi = result.value  # eV
