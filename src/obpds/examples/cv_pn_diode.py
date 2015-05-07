@@ -40,5 +40,11 @@ d = TwoTerminalDevice(layers=[p, n],
 # current approximation.
 d.show_zero_current(V=-2)
 
-print 'C = {} F/cm**2'.format(d.get_capacitance(V=-0.5))
+# Print the capacitance at -0.5 V.
+print 'C(V=-0.5) = {} F/cm**2'.format(d.get_capacitance(V=-0.5))
+
+# Show the C-V data from -2 to 0.2 V
 d.show_cv(-2, 0.2)
+
+# Show the C-V data and then save it to 'cv.txt'
+# d.save_cv('cv.txt', -2, 0.2, show=True)
