@@ -454,6 +454,115 @@ class TwoTerminalDevice(object):
         
         plt.show()
 
+    def interactive_zero_current(self, T=300., N=1000, approx='parabolic'):
+        '''
+        Arguments
+        ---------
+        T : float (default=300.)
+            Device temperature
+        N : int (default=1000)
+            Number of grid points
+        approx : str (default='parabolic')
+            If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
+            bands approximation (fastest). If 'parabolic', use the parabolic
+            bands approximation (fast). If 'kane', include Gamma-valley
+            non-parabolicity under the k.p Kane approximation (slow).
+        '''
+        solution = self.get_zero_current(0., T, N, approx)
+        x = solution.x*1e7 # nm
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(10, 10),
+                         #facecolor='white', edgecolor='white',
+                         tight_layout=True)
+        ax3 = plt.subplot2grid(shape=(3,15), loc=(2,0), colspan=14)
+        ax2 = plt.subplot2grid(shape=(3,15), loc=(1,0), colspan=14, sharex=ax3)
+        ax1 = plt.subplot2grid(shape=(3,15), loc=(0,0), colspan=14, sharex=ax3)
+        ax4 = plt.subplot2grid(shape=(3,15), loc=(0,14), sharey=ax1)
+        ax4.get_xaxis().set_visible(False)
+        ax4.get_yaxis().set_visible(False)
+        ax4_V = ax4.axhline(y=0., color='b', linestyle='--')
+
+        ax1.set_ymargin(0.1)
+        ax2.set_ymargin(0.1)
+        ax3.set_ymargin(0.1)
+
+        (ax1_Ev,) = ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
+        (ax1_Ec,) = ax1.plot(x, solution.Ec, 'b-', label='$E_c$')
+        (ax1_Fp,) = ax1.plot(x, solution.Fp, 'r--', label='$F_p$')
+        (ax1_Fn,) = ax1.plot(x, solution.Fn, 'b--', label='$F_n$')
+        (ax1_Ei,) = ax1.plot(x, solution.Ei, 'k:', label='$E_i$')
+        ax1.set_ylabel('Energy (eV)')
+        
+        nans = numpy.empty_like(x)
+        nans.fill(numpy.nan)
+        if (solution.Na > 0.).any():
+            (ax2_Na,) = ax2.semilogy(x, solution.Na, 'r-', label='$N_A$')
+        else:
+            (ax2_Na,) = ax2.semilogy(x, nans, 'r-', label='$N_A$')
+        if (solution.Nd > 0.).any():
+            (ax2_Nd,) = ax2.semilogy(x, solution.Nd, 'b-', label='$N_D$')
+        else:
+            (ax2_Nd,) = ax2.semilogy(x, solution.Nd, 'b-', label='$N_D$')
+        (ax2_p,) = ax2.semilogy(x, solution.p, 'r--', label='$p$')
+        (ax2_n,) = ax2.semilogy(x, solution.n, 'b--', label='$n$')
+        ax2.set_ylabel('Concentration (cm$^{-3}$)')
+        ymin, ymax = ax2.get_ylim()
+        if ymax/ymin > 1e10:
+            ax2.set_ylim(ymax/1e10, ymax)
+            
+        (ax3_dEv_dx,) = ax3.plot(x, solution.dEv_dx, 'r-')
+        (ax3_dEc_dx,) = ax3.plot(x, solution.dEc_dx, 'b-')
+        (ax3_field,) = ax3.plot(x, solution.field, 'k-')
+        ax3.axhline(0, color='grey')
+        ax3.set_ylabel('Effective Field (V/cm)')
+        ax3.set_xlabel('Depth (nm)')
+        ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        
+        def onclick(event):
+            if event.inaxes != ax4:
+                return
+            V = event.ydata
+            ax4_V.set_data(([0, 1], [V, V]))
+            solution = self.get_zero_current(V, T, N, approx)
+            ax1_Ev.set_data(x, solution.Ev)
+            ax1_Ec.set_data(x, solution.Ec)
+            ax1_Fp.set_data(x, solution.Fp)
+            ax1_Fn.set_data(x, solution.Fn)
+            ax1_Ei.set_data(x, solution.Ei)
+#             if (solution.Na > 0.).any():
+#                 ax2_Na.set_data(x, solution.Na)
+#             else:
+#                 ax2_Na.set_data(x, nans)
+#             if (solution.Nd > 0.).any():
+#                 ax2_Nd.set_data(x, solution.Nd)
+#             else:
+#                 ax2_Nd.set_data(x, solution.Nd)
+            ax2_p.set_data(x, solution.p)
+            ax2_n.set_data(x, solution.n)
+            ax3_dEv_dx.set_data(x, solution.dEv_dx)
+            ax3_dEc_dx.set_data(x, solution.dEc_dx)
+            ax3_field.set_data(x, solution.field)
+            
+            for ax in [ax1, ax2, ax3]:
+                old_ymin, old_ymax = ax.get_ylim()
+                ax.relim()
+                new_ymin, new_ymax = ax.dataLim.intervaly
+                if ax._ymargin > 0:
+                    delta = (new_ymax - new_ymin) * ax._ymargin
+                    new_ymin -= delta
+                    new_ymax += delta
+                ax.set_ybound(min(old_ymin, new_ymin), max(old_ymax, new_ymax))
+                
+            ymin, ymax = ax2.get_ylim()
+            if ymax/ymin > 1e10:
+                ax2.set_ylim(ymax/1e10, ymax)
+            
+            fig.canvas.draw()
+
+        _cid = fig.canvas.mpl_connect('button_press_event', onclick)
+        
+        plt.show()
+
     def save_zero_current(self, path, V, show=False, T=300, N=1000,
                          approx='parabolic'):
         '''
