@@ -44,6 +44,7 @@ setup(
                         'scipy',
                         'matplotlib',
                         'pint',
+                        'fdint >= 2.0',
                         'openbandparams >= 0.9'],
       zip_safe=True,
       use_2to3=True,

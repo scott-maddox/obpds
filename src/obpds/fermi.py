@@ -19,14 +19,19 @@
 #############################################################################
 import numpy
 from numpy import exp, log, sqrt, pi
-from .fd import para, para_d, ipara, kane, kane_d
+from fdint import (parabolic, dparabolic, iparabolic,
+                   nonparabolic, dnonparabolic,
+                   vparabolic, vdparabolic, viparabolic,
+                   vnonparabolic, vdnonparabolic)
 
 
-__all__ = ['boltz_p', 'boltz_n', 'boltz_phi_p', 'boltz_phi_n',
+__all__ = ['boltz_p', 'boltz_n',
+           'iboltz_p', 'iboltz_n',
            'boltz_dp', 'boltz_dn',
-           'para_p', 'para_n', 'ipara_p', 'ipara_n',
-           'para_dp', 'para_dn',
-           'kane_n', 'kane_dn']
+           'parabolic_p', 'parabolic_n',
+           'iparabolic_p', 'iparabolic_n',
+           'parabolic_dp', 'parabolic_dn',
+           'nonparabolic_n', 'nonparabolic_dn']
 
 # Boltzmann approximation to the Fermi-Dirac integral for a bulk
 # semiconductor with parabolic bands.
@@ -38,10 +43,10 @@ def boltz_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
     return exp(phi)*Nc
 
-def boltz_phi_p(p, Ev, Nv, Vt):
+def iboltz_p(p, Ev, Nv, Vt):
     return Ev - log(p / Nv)*Vt
 
-def boltz_phi_n(n, Ec, Nc, Vt):
+def iboltz_n(n, Ec, Nc, Vt):
     return Ec + log(n / Nc)*Vt
 
 def boltz_dp(phi_p, Ev, Nv, Vt):
@@ -54,41 +59,43 @@ def boltz_dn(phi_n, Ec, Nc, Vt):
 
 # Fermi-Dirac integral for a bulk semiconductor with parabolic bands
 assert 2/sqrt(pi) == 1.1283791670955126
-def para_p(phi_p, Ev, Nv, Vt):
+def parabolic_p(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return para(phi)*(Nv*1.1283791670955126)
+    return parabolic(phi)*(Nv*1.1283791670955126)
 
-def para_n(phi_n, Ec, Nc, Vt):
+def parabolic_n(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return para(phi)*(Nc*1.1283791670955126)
+    return parabolic(phi)*(Nc*1.1283791670955126)
 
-def ipara_p(p, Ev, Nv, Vt):
-    return Ev - ipara(p / (Nv*1.1283791670955126))*Vt
+def iparabolic_p(p, Ev, Nv, Vt):
+    return Ev - iparabolic(p / (Nv*1.1283791670955126))*Vt
 
-def ipara_n(n, Ec, Nc, Vt):
-    return Ec + ipara(n / (Nc*1.1283791670955126))*Vt
+def iparabolic_n(n, Ec, Nc, Vt):
+    return Ec + iparabolic(n / (Nc*1.1283791670955126))*Vt
 
-def para_dp(phi_p, Ev, Nv, Vt):
+def parabolic_dp(phi_p, Ev, Nv, Vt):
     phi = (Ev-phi_p)/Vt
-    return para_d(phi)*(Nv*-1.1283791670955126)/Vt
+    return dparabolic(phi)*(Nv*-1.1283791670955126)/Vt
 
-def para_dn(phi_n, Ec, Nc, Vt):
+def parabolic_dn(phi_n, Ec, Nc, Vt):
     phi = (phi_n-Ec)/Vt
-    return para_d(phi)*(Nc*1.1283791670955126)/Vt
+    return dparabolic(phi)*(Nc*1.1283791670955126)/Vt
     
-def kane_n(phi_n, Ec, Nc, alpha, Vt):
-    '''
-    Non-parabolic Fermi-Dirac integral.
-    '''
-    phi = (phi_n-Ec)/Vt
-    return kane(phi, alpha)*(Nc*1.1283791670955126)
 
-def kane_dn(phi_n, Ec, Nc, alpha, Vt):
+# Fermi-Dirac integral for a bulk semiconductor with nonparabolic bands
+def nonparabolic_n(phi_n, Ec, Nc, alpha, Vt):
     '''
-    Derivative of the non-parabolic Fermi-Dirac integral.
+    Nonparabolic Fermi-Dirac integral.
     '''
     phi = (phi_n-Ec)/Vt
-    return kane_d(phi, alpha)*(Nc*1.1283791670955126)/Vt
+    return nonparabolic(phi, alpha)*(Nc*1.1283791670955126)
+
+def nonparabolic_dn(phi_n, Ec, Nc, alpha, Vt):
+    '''
+    Derivative of the nonparabolic Fermi-Dirac integral.
+    '''
+    phi = (phi_n-Ec)/Vt
+    return dnonparabolic(phi, alpha)*(Nc*1.1283791670955126)/Vt
 
 if __name__ == "__main__":
     from scipy.integrate import quad
@@ -112,7 +119,7 @@ if __name__ == "__main__":
 
     # parabolic
     phi = numpy.linspace(-30, 100, 1000)
-    ax.semilogy(phi, para(phi), 'r')
+    ax.semilogy(phi, parabolic(phi), 'r')
     def _num_fd1h(phi):
         result = quad(lambda x: sqrt(x)/(1.+exp(x-phi)), 0., 100.)[0]
         return result
@@ -123,8 +130,8 @@ if __name__ == "__main__":
     phi = numpy.linspace(-30, 100, 1000)
     alpha = numpy.empty_like(phi)
     alpha.fill(0.07)
-    ax.semilogy(phi, kane(phi, alpha), 'g')
-    ax.semilogy(phi, kane_d(phi, alpha), 'g:')
+    ax.semilogy(phi, nonparabolic(phi, alpha), 'g')
+    ax.semilogy(phi, dnonparabolic(phi, alpha), 'g:')
     ax.semilogy(phi, num_npfermi(phi, alpha), 'g--', lw=2)
 
     plt.show()

@@ -169,38 +169,38 @@ def get_fermi_functions(phi_p, phi_n, Ev, Nv,
                     boltz_dn(phi_n, Ec_X - psi, Nc_X, Vt))
     elif approx == 'parabolic':
         def p(psi):
-            return para_p(phi_p, Ev - psi, Nv, Vt)
+            return parabolic_p(phi_p, Ev - psi, Nv, Vt)
         def n_Gamma(psi):
-            return para_n(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt)
+            return parabolic_n(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt)
         def n_L(psi):
-            return para_n(phi_n, Ec_L - psi, Nc_L, Vt)
+            return parabolic_n(phi_n, Ec_L - psi, Nc_L, Vt)
         def n_X(psi):
-            return para_n(phi_n, Ec_X - psi, Nc_X, Vt)
+            return parabolic_n(phi_n, Ec_X - psi, Nc_X, Vt)
         def n(psi):
             return n_Gamma(psi)+n_L(psi)+n_X(psi)
         def dp(psi):
-            return para_dp(phi_p, Ev - psi, Nv, Vt)
+            return parabolic_dp(phi_p, Ev - psi, Nv, Vt)
         def dn(psi):
-            return (para_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt) +
-                    para_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
-                    para_dn(phi_n, Ec_X - psi, Nc_X, Vt))
+            return (parabolic_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt) +
+                    parabolic_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
+                    parabolic_dn(phi_n, Ec_X - psi, Nc_X, Vt))
     elif approx == 'kane':
         def p(psi):
-            return para_p(phi_p, Ev - psi, Nv, Vt)
+            return parabolic_p(phi_p, Ev - psi, Nv, Vt)
         def n_Gamma(psi):
-            return kane_n(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt)
+            return nonparabolic_n(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt)
         def n_L(psi):
-            return para_n(phi_n, Ec_L - psi, Nc_L, Vt)
+            return parabolic_n(phi_n, Ec_L - psi, Nc_L, Vt)
         def n_X(psi):
-            return para_n(phi_n, Ec_X - psi, Nc_X, Vt)
+            return parabolic_n(phi_n, Ec_X - psi, Nc_X, Vt)
         def n(psi):
             return n_Gamma(psi)+n_L(psi)+n_X(psi)
         def dp(psi):
-            return para_dp(phi_p, Ev - psi, Nv, Vt)
+            return parabolic_dp(phi_p, Ev - psi, Nv, Vt)
         def dn(psi):
-            return (kane_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt) +
-                    para_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
-                    para_dn(phi_n, Ec_X - psi, Nc_X, Vt))
+            return (nonparabolic_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt) +
+                    parabolic_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
+                    parabolic_dn(phi_n, Ec_X - psi, Nc_X, Vt))
     else:
         raise ValueError('Invalid value for approx: {}'.format(approx))
     return p, n_Gamma, n_X, n_L, n, dp, dn
@@ -249,11 +249,11 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
             phi_ni = phi_n
         if parameters.Nnet[i] < 0.:
             p0 = -parameters.Nnet[i]
-            phi_p0 = ipara_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
+            phi_p0 = iparabolic_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
             psi0[i] = phi_p0-phi_pi
         elif parameters.Nnet[i] > 0.:
             n0 = parameters.Nnet[i]
-            phi_n0 = ipara_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
+            phi_n0 = iparabolic_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
             psi0[i] = phi_n0-phi_ni
         else:
             if phi_pi != numpy.inf and phi_ni != -numpy.inf:
