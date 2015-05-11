@@ -147,7 +147,7 @@ k = 8.6173324e-5 # eV K**-1
 
 def get_fermi_functions(phi_p, phi_n, Ev, Nv,
                         Ec_Gamma, Ec_L, Ec_X,
-                        Nc_Gamma, Nc_L, Nc_X, nonparabolicity, Vt, approx='parabolic'):
+                        Nc_Gamma, Nc_L, Nc_X, nonparabolicity, Vt, approx='kane'):
     
     # define functions for calculating p, n, dp, and dn
     if approx == 'boltzmann':
@@ -222,7 +222,7 @@ def scalar_charge_neutrality(psi0, p, n, dp, dn, Nnet):
     return result.value
 
 def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
-                      approx='parabolic'):
+                      approx='kane'):
     # get materials and device parameters
     parameters = device._get_parameters(T, N)
     flatband = device._get_flatband(T, N)
@@ -298,7 +298,7 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
     return psi0
 
 def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
-                          approx='parabolic'):
+                          approx='kane'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
     equation for the given device under equilibrium conditions.
@@ -317,7 +317,7 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
         Device temperature
     N : int (default=1000)
         Number of grid points
-    approx : str (default='parabolic')
+    approx : str (default ='kane')
         If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
         bands approximation (fastest). If 'parabolic', use the parabolic
         bands approximation (fast). If 'kane', include Gamma-valley
@@ -441,7 +441,7 @@ def plot(psi, psi_kp, p, n, Nnet):
     ax2.legend(loc='right')
     plt.show()
 
-def poisson_eq(device, T=300., N=1000, approx='parabolic'):
+def poisson_eq(device, T=300., N=1000, approx='kane'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
     equation for the given device under equilibrium conditions.
@@ -454,7 +454,7 @@ def poisson_eq(device, T=300., N=1000, approx='parabolic'):
         Device temperature
     N : int (default=1000)
         Number of grid points
-    approx : str (default='parabolic')
+    approx : str (default ='kane')
         If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
         bands approximation (fastest). If 'parabolic', use the parabolic
         bands approximation (fast). If 'kane', include Gamma-valley
@@ -502,7 +502,7 @@ def get_phis(device, V, T, N):
     
     return phi_p, phi_n
 
-def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
+def poisson_zero_current(device, V, T=300., N=1000, approx='kane'):
     '''
     Uses Newton's method to solve the self-consistent electrostatic Poisson
     equation for the given device at a given bias voltage under the
@@ -518,7 +518,7 @@ def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
         Device temperature
     N : int (default=1000)
         Number of grid points
-    approx : str (default='parabolic')
+    approx : str (default ='kane')
         If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
         bands approximation (fastest). If 'parabolic', use the parabolic
         bands approximation (fast). If 'kane', include Gamma-valley
@@ -536,7 +536,7 @@ def poisson_zero_current(device, V, T=300., N=1000, approx='parabolic'):
 
     return _poisson_zero_current(device, psi0, phi_p, phi_n, V, T, N, approx)
 
-def capacitance_zero_current(device, V, dV, T=300., N=1000, approx='parabolic'):
+def capacitance_zero_current(device, V, dV, T=300., N=1000, approx='kane'):
     '''
     Calculate the capacitance under the zero-current approximation.
     '''

@@ -213,12 +213,12 @@ class TwoTerminalDevice(object):
             self._flatband[(T, N)] = s
             return s
     
-    def _calc_equilibrium(self, T, N, approx='parabolic'):
+    def _calc_equilibrium(self, T, N, approx='kane'):
         solution = poisson_eq(self, T=T, N=N, approx=approx)
         self._equilibrium[(T, N, approx)] = solution
         return solution
     
-    def has_equilibrium(self, T=300., N=1000, approx='parabolic'):
+    def has_equilibrium(self, T=300., N=1000, approx='kane'):
         '''
         Returns True if the equilbrium solution is cached.
         
@@ -228,7 +228,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -236,7 +236,7 @@ class TwoTerminalDevice(object):
         '''
         return (T, N, approx) in self._equilibrium
 
-    def get_equilibrium(self, T=300., N=1000, approx='parabolic'):
+    def get_equilibrium(self, T=300., N=1000, approx='kane'):
         '''
         Returns an `EquilibriumSolution` instance.
         
@@ -246,7 +246,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -257,7 +257,7 @@ class TwoTerminalDevice(object):
         else:
             return self._calc_equilibrium(T, N, approx)
 
-    def show_equilibrium(self, T=300., N=1000, approx='parabolic'):
+    def show_equilibrium(self, T=300., N=1000, approx='kane'):
         '''
         Plot and show the band profile at equilibrium.
         
@@ -267,7 +267,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -324,7 +324,7 @@ class TwoTerminalDevice(object):
                 values = [repr(array[i]) for array in arrays]
                 f.write(template.format(*values))
 
-    def save_equilibrium(self, path, show=False, T=300, N=1000, approx='parabolic'):
+    def save_equilibrium(self, path, show=False, T=300, N=1000, approx='kane'):
         '''
         Save the bands at equilibrium.
         
@@ -338,7 +338,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -349,10 +349,10 @@ class TwoTerminalDevice(object):
         s = self.get_equilibrium(T, N, approx)
         self._save_solution(s, path)
     
-    def _calc_zero_current(self, V, T, N, approx='parabolic'):
+    def _calc_zero_current(self, V, T, N, approx):
         return poisson_zero_current(self, V=V, T=T, N=N, approx=approx)
     
-    def has_zero_current(self, V, T=300., N=1000, approx='parabolic'):
+    def has_zero_current(self, V, T=300., N=1000, approx='kane'):
         '''
         Returns True if the zero current solution is cached.
         
@@ -364,7 +364,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -372,7 +372,7 @@ class TwoTerminalDevice(object):
         '''
         return (V, T, N, approx) in self._zero_current
     
-    def get_zero_current(self, V, T=300., N=1000, approx='parabolic'):
+    def get_zero_current(self, V, T=300., N=1000, approx='kane'):
         '''
         Returns a `ZeroCurrentSolution` instance.
         
@@ -384,7 +384,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -397,7 +397,7 @@ class TwoTerminalDevice(object):
             self._zero_current[(V, T, N, approx)] = solution
             return solution
 
-    def show_zero_current(self, V, T=300., N=1000, approx='parabolic'):
+    def show_zero_current(self, V, T=300., N=1000, approx='kane'):
         '''
         Plot and show the band profile at a given bias voltage under the
         zero-current approximation.
@@ -410,7 +410,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -454,7 +454,7 @@ class TwoTerminalDevice(object):
         
         plt.show()
 
-    def interactive_zero_current(self, T=300., N=1000, approx='parabolic'):
+    def interactive_zero_current(self, T=300., N=1000, approx='kane'):
         '''
         Arguments
         ---------
@@ -462,7 +462,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -564,7 +564,7 @@ class TwoTerminalDevice(object):
         plt.show()
 
     def save_zero_current(self, path, V, show=False, T=300, N=1000,
-                         approx='parabolic'):
+                         approx='kane'):
         '''
         Save the band profile at a given bias voltage under the
         zero-current approximation.
@@ -581,7 +581,7 @@ class TwoTerminalDevice(object):
             Device temperature
         N : int (default=1000)
             Number of grid points
-        approx : str (default='parabolic')
+        approx : str (default ='kane')
             If 'boltzmann', use the Boltzmann (non-degenerate) and parabolic
             bands approximation (fastest). If 'parabolic', use the parabolic
             bands approximation (fast). If 'kane', include Gamma-valley
@@ -592,10 +592,10 @@ class TwoTerminalDevice(object):
         s = self.get_zero_current(V, T, N, approx)
         self._save_solution(s, path)
     
-    def _calc_capacitance(self, V, dV, T=300, N=1000, approx='parabolic'):
+    def _calc_capacitance(self, V, dV, T=300, N=1000, approx='kane'):
         return capacitance_zero_current(self, V, dV, T, N, approx)
     
-    def get_capacitance(self, V, dV=1e-3, T=300, N=1000, approx='parabolic'):
+    def get_capacitance(self, V, dV=1e-3, T=300, N=1000, approx='kane'):
         '''
         Returns
         -------
@@ -610,7 +610,7 @@ class TwoTerminalDevice(object):
             return s
     
     def get_cv(self, Vstart, Vstop, Vnum=100, dV=1e-3, T=300, N=1000,
-               approx='parabolic'):
+               approx='kane'):
         '''
         Returns
         -------
@@ -626,7 +626,7 @@ class TwoTerminalDevice(object):
         return C, V
 
     def show_cv(self, Vstart, Vstop, Vnum=50, dV=1e-3, T=300, N=1000,
-                approx='parabolic'):
+                approx='kane'):
         C, V = self.get_cv(Vstart, Vstop, Vnum, dV, T, N, approx)
         rCs = 1/C**2
         ndV_drCs = (-1.)/numpy.gradient(rCs, (V[1]-V[0]))
@@ -655,7 +655,7 @@ class TwoTerminalDevice(object):
         plt.show()
     
     def save_cv(self, path, Vstart, Vstop, Vnum=50, dV=1e-3, show=False,
-                T=300, N=1000, approx='parabolic'):
+                T=300, N=1000, approx='kane'):
         C, V = self.get_cv(Vstart, Vstop, Vnum, dV, T, N, approx)
         rCs = 1/C**2
         ndV_drCs = (-1.)/numpy.gradient(rCs, (V[1]-V[0]))

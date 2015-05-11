@@ -38,4 +38,4 @@ d = TwoTerminalDevice(layers=[p, n],
 
 # Simulate and show an interactive band profile under the zero current
 # approximation.
-d.interactive_zero_current(approx='kane')
+d.interactive_zero_current()
