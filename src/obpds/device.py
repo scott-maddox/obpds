@@ -29,6 +29,8 @@ from .solution import ParametersSolution, FlatbandSolution
 
 __all__ = ['TwoTerminalDevice']
 
+BLUE = '#0000FF'
+RED = '#FF0000'
 
 # electron charge
 q = 1.602176565e-19 # C
@@ -298,12 +300,14 @@ class TwoTerminalDevice(object):
             ax2.set_ylim(ymax/1e10, ymax)
             
         ax3.set_ymargin(0.05)
-        ax3.plot(x, solution.dEv_dx, 'r-')
-        ax3.plot(x, solution.dEc_dx, 'b-')
-        ax3.plot(x, solution.field, 'k-')
+        (ax3_field,) = ax3.plot(x, solution.field, 'k-')
+        (ax3_dEv_dx,) = ax3.plot(x, solution.dEv_dx, 'r-', alpha=0.5)
+        (ax3_dEc_dx,) = ax3.plot(x, solution.dEc_dx, 'b-', alpha=0.5)
         ax3.set_ylabel('Effective Field (V/cm)')
         ax3.set_xlabel('Depth (nm)')
         ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        self.filtered_autolim(ax3, solution.dEv_dx, solution.dEc_dx,
+                              solution.field)
         
         plt.show()
     
@@ -444,13 +448,17 @@ class TwoTerminalDevice(object):
             ax2.set_ylim(ymax/1e10, ymax)
             
         ax3.set_ymargin(0.05)
-        ax3.plot(x, solution.dEv_dx, 'r-')
-        ax3.plot(x, solution.dEc_dx, 'b-')
-        ax3.plot(x, solution.field, 'k-')
+        dEv_dx = numpy.empty_like(solution.dEv_dx)
+        dEc_dx = numpy.empty_like(solution.dEc_dx)
+        (ax3_field,) = ax3.plot(x, solution.field, 'k-')
+        (ax3_dEv_dx,) = ax3.plot(x, solution.dEv_dx, 'r-', alpha=0.5)
+        (ax3_dEc_dx,) = ax3.plot(x, solution.dEc_dx, 'b-', alpha=0.5)
         ax3.axhline(0, color='grey')
         ax3.set_ylabel('Effective Field (V/cm)')
         ax3.set_xlabel('Depth (nm)')
         ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        self.filtered_autolim(ax3, solution.dEv_dx, solution.dEc_dx,
+                              solution.field)
         
         plt.show()
 
@@ -495,28 +503,32 @@ class TwoTerminalDevice(object):
         
         nans = numpy.empty_like(x)
         nans.fill(numpy.nan)
-        if (solution.Na > 0.).any():
-            (ax2_Na,) = ax2.semilogy(x, solution.Na, 'r-', label='$N_A$')
-        else:
-            (ax2_Na,) = ax2.semilogy(x, nans, 'r-', label='$N_A$')
-        if (solution.Nd > 0.).any():
-            (ax2_Nd,) = ax2.semilogy(x, solution.Nd, 'b-', label='$N_D$')
-        else:
-            (ax2_Nd,) = ax2.semilogy(x, solution.Nd, 'b-', label='$N_D$')
+        (ax2_Na,) = ax2.plot(x, solution.Na, 'r-', label='$N_A$')
+        (ax2_Nd,) = ax2.plot(x, solution.Nd, 'b-', label='$N_D$')
         (ax2_p,) = ax2.semilogy(x, solution.p, 'r--', label='$p$')
         (ax2_n,) = ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
         ymin, ymax = ax2.get_ylim()
         if ymax/ymin > 1e10:
             ax2.set_ylim(ymax/1e10, ymax)
-            
-        (ax3_dEv_dx,) = ax3.plot(x, solution.dEv_dx, 'r-')
-        (ax3_dEc_dx,) = ax3.plot(x, solution.dEc_dx, 'b-')
+        
         (ax3_field,) = ax3.plot(x, solution.field, 'k-')
+        (ax3_dEv_dx,) = ax3.plot(x, solution.dEv_dx, color=RED, alpha=0.7)
+        (ax3_dEc_dx,) = ax3.plot(x, solution.dEc_dx, color=BLUE, alpha=0.7)
         ax3.axhline(0, color='grey')
         ax3.set_ylabel('Effective Field (V/cm)')
         ax3.set_xlabel('Depth (nm)')
         ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
+        self.filtered_autolim(ax3, solution.dEv_dx, solution.dEc_dx,
+                              solution.field)
+
+#         new_ymin = solution.field.min()
+#         new_ymax = solution.field.max()
+#         if ax3._ymargin > 0:
+#             delta = (new_ymax - new_ymin) * ax3._ymargin
+#             new_ymin -= delta
+#             new_ymax += delta
+#         ax3.set_ybound(new_ymin, new_ymax)
         
         def onclick(event):
             if event.inaxes != ax4:
@@ -543,7 +555,7 @@ class TwoTerminalDevice(object):
             ax3_dEc_dx.set_data(x, solution.dEc_dx)
             ax3_field.set_data(x, solution.field)
             
-            for ax in [ax1, ax2, ax3]:
+            for ax in [ax1, ax2]:
                 old_ymin, old_ymax = ax.get_ylim()
                 ax.relim()
                 new_ymin, new_ymax = ax.dataLim.intervaly
@@ -555,13 +567,48 @@ class TwoTerminalDevice(object):
                 
             ymin, ymax = ax2.get_ylim()
             if ymax/ymin > 1e10:
-                ax2.set_ylim(ymax/1e10, ymax)
+                ax2.set_ybound(ymax/1e10, ymax)
+            
+            self.filtered_autolim(ax3, solution.dEv_dx, solution.dEc_dx,
+                                  solution.field)
             
             fig.canvas.draw()
 
         _cid = fig.canvas.mpl_connect('button_press_event', onclick)
         
         plt.show()
+    
+    @classmethod
+    def filtered_autolim(cls, ax, *fields):
+        fmin = numpy.inf
+        fmax = -numpy.inf
+        for field in fields:
+            for i in xrange(2, field.size-2):
+                delta_m2 = abs(field[i]-field[i-2])
+                delta_m1 = abs(field[i]-field[i-1])
+                delta_p1 = abs(field[i]-field[i+1])
+                delta_p2 = abs(field[i]-field[i+2])
+    #             if (delta_m1 ~= delta_m2 and
+    #                 delta_p1 << delta_m1 and
+    #                 delta_p2 >> delta_p1):
+                if (delta_m1     < delta_m2*2   and
+                    delta_p1*100 < delta_m1     and
+                    delta_p2     > delta_p1*100):
+                    continue
+    #             if (delta_m1 << delta_m2 and
+    #                 delta_p1 >> delta_m1 and
+    #                 delta_p2 ~= delta_p1):
+                if (delta_m1*100 < delta_m2     and
+                    delta_p1     > delta_m1*100 and
+                    delta_p2     < delta_p1*2):
+                    continue
+                fmin = min(fmin, field[i])
+                fmax = max(fmax, field[i])
+        if ax._ymargin > 0:
+            delta = (fmax - fmin) * ax._ymargin
+            fmin -= delta
+            fmax += delta
+        ax.set_ybound(fmin, fmax)
 
     def save_zero_current(self, path, V, show=False, T=300, N=1000,
                          approx='kane'):
