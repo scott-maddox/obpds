@@ -40,6 +40,8 @@ setup(
                 'obpds.examples'],
       package_dir={'obpds': 'src/obpds'},
       test_suite='obpds.tests',
+      setup_requires=['cython',
+                      'numpy'],
       install_requires=['numpy',
                         'scipy',
                         'matplotlib',
