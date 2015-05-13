@@ -136,7 +136,7 @@ def update_Fpsi_jacobian(Fpsi_jacobian, df_dpsi, dx):
     Fpsi_jacobian.data[2::3] = -2 + df_dpsi[1:-1]*dx2
 
 
-from .fermi import *
+from fdint.scfd import *
 
 # electron charge
 q = 1.602176565e-19 # C
@@ -147,60 +147,65 @@ k = 8.6173324e-5 # eV K**-1
 
 def get_fermi_functions(phi_p, phi_n, Ev, Nv,
                         Ec_Gamma, Ec_L, Ec_X,
-                        Nc_Gamma, Nc_L, Nc_X, nonparabolicity, Vt, approx='kane'):
+                        Nc_Gamma, Nc_L, Nc_X,
+                        nonparabolicity, Vt, approx='kane'):
     
     # define functions for calculating p, n, dp, and dn
     if approx == 'boltzmann':
-        def p(psi):
-            return boltz_p(phi_p, Ev - psi, Nv, Vt)
-        def n_Gamma(psi):
-            return boltz_n(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt)
-        def n_L(psi):
-            return boltz_n(phi_n, Ec_L - psi, Nc_L, Vt)
-        def n_X(psi):
-            return boltz_n(phi_n, Ec_X - psi, Nc_X, Vt)
-        def n(psi):
-            return n_Gamma(psi)+n_L(psi)+n_X(psi)
-        def dp(psi):
-            return boltz_dp(phi_p, Ev - psi, Nv, Vt)
-        def dn(psi):
-            return (boltz_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt) +
-                    boltz_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
-                    boltz_dn(phi_n, Ec_X - psi, Nc_X, Vt))
+        def p(psi, buf=None):
+            return boltzmann_p(phi_p, psi, Ev, Nv, Vt, out=buf)
+        def n_Gamma(psi, buf=None):
+            return boltzmann_n(phi_n, psi, Ec_Gamma, Nc_Gamma, Vt, out=buf)
+        def n_L(psi, buf=None):
+            return boltzmann_n(phi_n, psi, Ec_L, Nc_L, Vt, out=buf)
+        def n_X(psi, buf=None):
+            return boltzmann_n(phi_n, psi, Ec_X, Nc_X, Vt, out=buf)
+        def n(psi, buf=None):
+            return boltzmann_n3(phi_n, psi, Ec_Gamma, Ec_L, Ec_X,
+                             Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
+        def dp(psi, buf=None):
+            return boltzmann_dp(phi_p, psi, Ev, Nv, Vt, out=buf)
+        def dn(psi, buf=None):
+            return boltzmann_dn3(phi_n, psi, Ec_Gamma, Ec_L, Ec_X,
+                             Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
     elif approx == 'parabolic':
-        def p(psi):
-            return parabolic_p(phi_p, Ev - psi, Nv, Vt)
-        def n_Gamma(psi):
-            return parabolic_n(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt)
-        def n_L(psi):
-            return parabolic_n(phi_n, Ec_L - psi, Nc_L, Vt)
-        def n_X(psi):
-            return parabolic_n(phi_n, Ec_X - psi, Nc_X, Vt)
-        def n(psi):
-            return n_Gamma(psi)+n_L(psi)+n_X(psi)
-        def dp(psi):
-            return parabolic_dp(phi_p, Ev - psi, Nv, Vt)
-        def dn(psi):
-            return (parabolic_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, Vt) +
-                    parabolic_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
-                    parabolic_dn(phi_n, Ec_X - psi, Nc_X, Vt))
+        #TODO: get rid of Ev - psi, etc.
+        def p(psi, buf=None):
+            return parabolic_p(phi_p, psi, Ev, Nv, Vt, out=buf)
+        def n_Gamma(psi, buf=None):
+            return parabolic_n(phi_n, psi, Ec_Gamma, Nc_Gamma, Vt, out=buf)
+        def n_L(psi, buf=None):
+            return parabolic_n(phi_n, psi, Ec_L, Nc_L, Vt, out=buf)
+        def n_X(psi, buf=None):
+            return parabolic_n(phi_n, psi, Ec_X, Nc_X, Vt, out=buf)
+        def n(psi, buf=None):
+            return parabolic_n3(phi_n, psi, Ec_Gamma, Ec_L, Ec_X,
+                                Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
+        def dp(psi, buf=None):
+            return parabolic_dp(phi_p, psi, Ev, Nv, Vt, out=buf)
+        def dn(psi, buf=None):
+            return parabolic_dn3(phi_n, psi, Ec_Gamma, Ec_L, Ec_X,
+                                 Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
     elif approx == 'kane':
-        def p(psi):
-            return parabolic_p(phi_p, Ev - psi, Nv, Vt)
-        def n_Gamma(psi):
-            return nonparabolic_n(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt)
-        def n_L(psi):
-            return parabolic_n(phi_n, Ec_L - psi, Nc_L, Vt)
-        def n_X(psi):
-            return parabolic_n(phi_n, Ec_X - psi, Nc_X, Vt)
-        def n(psi):
-            return n_Gamma(psi)+n_L(psi)+n_X(psi)
-        def dp(psi):
-            return parabolic_dp(phi_p, Ev - psi, Nv, Vt)
-        def dn(psi):
-            return (nonparabolic_dn(phi_n, Ec_Gamma - psi, Nc_Gamma, nonparabolicity, Vt) +
-                    parabolic_dn(phi_n, Ec_L - psi, Nc_L, Vt) + 
-                    parabolic_dn(phi_n, Ec_X - psi, Nc_X, Vt))
+        def p(psi, buf=None):
+            return parabolic_p(phi_p, psi, Ev, Nv, Vt, out=buf)
+        def n_Gamma(psi, buf=None):
+            return nonparabolic_n(phi_n, psi, nonparabolicity,
+                                  Ec_Gamma, Nc_Gamma, Vt, out=buf)
+        def n_L(psi, buf=None):
+            return parabolic_n(phi_n, psi, Ec_L, Nc_L, Vt, out=buf)
+        def n_X(psi, buf=None):
+            return parabolic_n(phi_n, psi, Ec_X, Nc_X, Vt, out=buf)
+        def n(psi, buf=None):
+            return nonparabolic_n3(phi_n, psi, nonparabolicity,
+                                   Ec_Gamma, Ec_L, Ec_X,
+                                   Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
+        def dp(psi, buf=None):
+            return parabolic_dp(phi_p, psi, Ev, Nv, Vt, out=buf)
+        def dn(psi, buf=None):
+            return nonparabolic_dn3(phi_n, psi, nonparabolicity,
+                                    Ec_Gamma, Ec_L, Ec_X,
+                                    Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
     else:
         raise ValueError('Invalid value for approx: {}'.format(approx))
     return p, n_Gamma, n_X, n_L, n, dp, dn
@@ -208,16 +213,22 @@ def get_fermi_functions(phi_p, phi_n, Ev, Nv,
 def scalar_charge_neutrality(psi0, p, n, dp, dn, Nnet):
     if Nnet == 0.:
         return psi0
- 
+
     def G(psi):
-        return p(psi)-n(psi)+Nnet
+        rho = p(psi)-n(psi)+Nnet
+        # replace nan's with 0.0
+        if numpy.isnan(rho):
+            rho = 0.0
+        logger.debug('rho = %s', rho)
+        return rho
     def A(psi):
-        drho_dpsi = dp(psi) - dn(psi)
-        # replace 0's and nan's with 1.
-        if drho_dpsi == 0. or numpy.isnan(drho_dpsi).any():
-            drho_dpsi = 1.
+        drho_dpsi = dp(psi)-dn(psi)
+        # replace nan's with 1.0
+        if numpy.isnan(drho_dpsi) or drho_dpsi == 0.:
+            drho_dpsi = 1.0
+        logger.debug('drho_dpsi = %s', drho_dpsi)
         return drho_dpsi
-    result = scalar_newton(G, A, psi0, rtol=1e-8)
+    result = scalar_newton(G, A, psi0, rtol=1e-7)
     assert result.converged
     return result.value
 
@@ -249,11 +260,11 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
             phi_ni = phi_n
         if parameters.Nnet[i] < 0.:
             p0 = -parameters.Nnet[i]
-            phi_p0 = iparabolic_p(p0, flatband.Ev[i], parameters.Nv[i], Vt)
+            phi_p0 = iparabolic_p(p0, 0., flatband.Ev[i], parameters.Nv[i], Vt)
             psi0[i] = phi_p0-phi_pi
         elif parameters.Nnet[i] > 0.:
             n0 = parameters.Nnet[i]
-            phi_n0 = iparabolic_n(n0, flatband.Ec[i], parameters.Nc[i], Vt)
+            phi_n0 = iparabolic_n(n0, 0., flatband.Ec[i], parameters.Nc[i], Vt)
             psi0[i] = phi_n0-phi_ni
         else:
             if phi_pi != numpy.inf and phi_ni != -numpy.inf:
@@ -269,28 +280,30 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
     logger.debug('psi0 before newton = %s', psi0)
     ## Refine with newton method, in case satallite valleys or
     ## band non-parabolicity are significant.
+    
+    buf1 = numpy.empty(N)
+    buf2 = numpy.empty(N)
 #     global last_psi
 #     last_psi = psi0
-    zeros = numpy.zeros(N)
-    ones = numpy.empty(N)
-    ones.fill(1.)
     def G0(psi):
 #         global last_psi
 #         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
 #         last_psi = psi
-        rho = p(psi)-n(psi)+parameters.Nnet-residual
-        # replace nan's with 0.
-        rho = numpy.where(-numpy.isnan(rho), rho, zeros)
+        rho = p(psi, buf1) - n(psi, buf2) + parameters.Nnet - residual
+        # replace nan's with 0.0
+        for i in xrange(N):
+            if numpy.isnan(rho[i]):
+                rho[i] = 0.0
         logger.debug('rho = %s', rho)
         return rho
     def A0(psi):
-        df_dpsi = dp(psi) - dn(psi)
-        # replace 0's with 1.
-        df_dpsi = numpy.where((df_dpsi != 0.), df_dpsi, ones)
-        # replace nan's with 1.
-        df_dpsi = numpy.where(-numpy.isnan(df_dpsi), df_dpsi, ones)
-        logger.debug('df_dpsi = %s', df_dpsi)
-        return spdiags(df_dpsi, [0], N, N, format='csr')
+        drho_dpsi = dp(psi, buf1) - dn(psi, buf2)
+        # replace nan's with 1.0
+        for i in xrange(N):
+            if numpy.isnan(drho_dpsi[i]) or drho_dpsi[i] == 0.:
+                drho_dpsi[i] = 1.0
+        logger.debug('df_dpsi = %s', drho_dpsi)
+        return spdiags(drho_dpsi, [0], N, N, format='csr')
     result = newton(G0, A0, psi0)
     psi0 = result.value  # eV
     logger.debug('psi0 = %s', psi0)
@@ -378,9 +391,8 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
     else:
         raise RuntimeError('unexpected execution path')
 
-    zeros = numpy.zeros(N)
-    ones = numpy.empty(N)
-    ones.fill(1.)
+    buf1 = numpy.empty(N)
+    buf2 = numpy.empty(N)
     Fpsi = numpy.empty(N)
     Fpsi_jacobian = get_Fpsi_jacobian(N)
 #     global last_psi
@@ -389,16 +401,22 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
 #         global last_psi
 #         plot(last_psi, psi, p(psi), n(psi), parameters.Nnet)
 #         last_psi = psi
-        f = (p(psi)-n(psi)+parameters.Nnet)*q_over_eps
-        # replace nan's with 0.
-        f = numpy.where(-numpy.isnan(f), f, zeros)
+        # f = q/eps * (p - n + Nnet)
+        f = (p(psi, buf1) - n(psi, buf2) + parameters.Nnet) * q_over_eps
+        # replace nan's with 0.0
+        for i in xrange(N):
+            if numpy.isnan(f[i]):
+                f[i] = 0.0
         logger.debug('f = %s', f)
         update_Fpsi(Fpsi, psi, f, dx, a=a, b=b)
         return Fpsi
     def A(psi):
-        df_dpsi = (dp(psi) - dn(psi))*q_over_eps
-        # replace nan's with 1.
-        df_dpsi = numpy.where(-numpy.isnan(df_dpsi), df_dpsi, ones)
+        # df_dpsi = q/eps * (dp - dn)
+        df_dpsi = (dp(psi, buf1) - dn(psi, buf2)) * q_over_eps
+        # replace nan's with 1.0
+        for i in xrange(N):
+            if numpy.isnan(df_dpsi[i]):
+                df_dpsi[i] = 1.0
         logger.debug('df_dpsi = %s', df_dpsi)
         update_Fpsi_jacobian(Fpsi_jacobian, df_dpsi, dx)
         return Fpsi_jacobian
