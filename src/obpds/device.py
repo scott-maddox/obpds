@@ -35,6 +35,20 @@ RED = '#FF0000'
 # electron charge
 q = 1.602176565e-19 # C
 
+#TODO: test and use this decorator
+def cached_method(f):
+    cache_name = '__%s_cache' % f.__name__
+    def wrapper(self, *args):
+        cache = getattr(self, cache_name, None)
+        if cache is None:
+            cache = {}
+            setattr(self, cache_name, cache)
+        if args in cache:
+            return cache[args]
+        res = cache[args] = f(self, *args)
+        return res
+    return wrapper
+
 class TwoTerminalDevice(object):
     '''
     A two terminal device composed of a number of layers with two contacts
