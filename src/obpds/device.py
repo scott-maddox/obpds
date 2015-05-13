@@ -488,7 +488,8 @@ class TwoTerminalDevice(object):
         ax4 = plt.subplot2grid(shape=(3,15), loc=(0,14), sharey=ax1)
         ax4.get_xaxis().set_visible(False)
         ax4.get_yaxis().set_visible(False)
-        ax4_V = ax4.axhline(y=0., color='b', linestyle='--')
+        ax4.axhline(0, color='grey')
+        ax4_V = ax4.axhline(y=0., color='k', linestyle='-')
 
         ax1.set_ymargin(0.1)
         ax2.set_ymargin(0.1)
