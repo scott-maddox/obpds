@@ -595,6 +595,8 @@ class TwoTerminalDevice(object):
     
     @classmethod
     def filtered_autolim(cls, ax, *fields):
+        threshold1 = 10
+        threshold2 = 2
         fmin = numpy.inf
         fmax = -numpy.inf
         for field in fields:
@@ -606,16 +608,16 @@ class TwoTerminalDevice(object):
     #             if (delta_m1 ~= delta_m2 and
     #                 delta_p1 << delta_m1 and
     #                 delta_p2 >> delta_p1):
-                if (delta_m1     < delta_m2*2   and
-                    delta_p1*100 < delta_m1     and
-                    delta_p2     > delta_p1*100):
+                if (delta_m1            < delta_m2*threshold2   and
+                    delta_p1*threshold1 < delta_m1              and
+                    delta_p2            > delta_p1*threshold1):
                     continue
     #             if (delta_m1 << delta_m2 and
     #                 delta_p1 >> delta_m1 and
     #                 delta_p2 ~= delta_p1):
-                if (delta_m1*100 < delta_m2     and
-                    delta_p1     > delta_m1*100 and
-                    delta_p2     < delta_p1*2):
+                if (delta_m1*threshold1 < delta_m2            and
+                    delta_p1            > delta_m1*threshold1 and
+                    delta_p2            < delta_p1*threshold2):
                     continue
                 fmin = min(fmin, field[i])
                 fmax = max(fmax, field[i])
