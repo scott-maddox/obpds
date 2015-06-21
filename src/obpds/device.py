@@ -234,6 +234,9 @@ class TwoTerminalDevice(object):
         self._equilibrium[(T, N, approx)] = solution
         return solution
     
+    def get_thickness(self):
+        return self._layer.get_thickness()
+    
     def has_equilibrium(self, T=300., N=1000, approx='kane'):
         '''
         Returns True if the equilbrium solution is cached.
