@@ -82,10 +82,6 @@ class Layer(object):
         ILO = VBO + self._material.Ei(T=T)
         return x, (VBO, VBO), (CBO, CBO), (ILO, ILO)
 
-    def write_AMBER_recipe(self, fobj):
-        fobj.write('l {} {:.3f} ! Angs\n'.format(self._material.name,
-                                                 self._thickness*1e8))
-
 class GradedLayer(Layer):
     def __init__(self, thickness, material_func):
         self._thickness = to_units(thickness, cm)
