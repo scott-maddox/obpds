@@ -20,6 +20,7 @@
 
 from openbandparams import *
 
+from .config import cfg
 from .version import __version__
 from .units import *
 from .material import *

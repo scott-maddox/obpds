@@ -25,6 +25,7 @@ from .contact import Contact, OhmicContact
 from .solver import (poisson_eq, poisson_zero_current,
                      capacitance_zero_current)
 from .solution import ParametersSolution, FlatbandSolution
+from .config import cfg
 
 
 __all__ = ['TwoTerminalDevice']
@@ -36,7 +37,7 @@ RED = '#FF0000'
 q = 1.602176565e-19 # C
 
 #TODO: test and use this decorator
-def cached_method(f):
+def _cached_method(f):
     cache_name = '__%s_cache' % f.__name__
     def wrapper(self, *args):
         cache = getattr(self, cache_name, None)
@@ -237,7 +238,7 @@ class TwoTerminalDevice(object):
     def get_thickness(self):
         return self._layer.get_thickness()
     
-    def has_equilibrium(self, T=300., N=1000, approx='kane'):
+    def _has_equilibrium(self, T=300., N=1000, approx='kane'):
         '''
         Returns True if the equilbrium solution is cached.
         
@@ -271,7 +272,7 @@ class TwoTerminalDevice(object):
             bands approximation (fast). If 'kane', include Gamma-valley
             non-parabolicity under the k.p Kane approximation (slow).
         '''
-        if self.has_equilibrium(T, N, approx):
+        if self._has_equilibrium(T, N, approx):
             return self._equilibrium[(T, N, approx)]
         else:
             return self._calc_equilibrium(T, N, approx)
@@ -313,8 +314,8 @@ class TwoTerminalDevice(object):
         ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
         ymin, ymax = ax2.get_ylim()
-        if ymax/ymin > 1e10:
-            ax2.set_ylim(ymax/1e10, ymax)
+        if ymax/ymin > cfg['plot/semilogy/yrange']:
+            ax2.set_ylim(ymax/cfg['plot/semilogy/yrange'], ymax)
             
         ax3.set_ymargin(0.05)
         (ax3_field,) = ax3.plot(x, solution.field, 'k-')
@@ -418,7 +419,7 @@ class TwoTerminalDevice(object):
             self._zero_current[(V, T, N, approx)] = solution
             return solution
 
-    def show_zero_current(self, V, T=300., N=1000, approx='kane'):
+    def show_zero_current_image(self, V, T=300., N=1000, approx='kane'):
         '''
         Plot and show the band profile at a given bias voltage under the
         zero-current approximation.
@@ -437,6 +438,16 @@ class TwoTerminalDevice(object):
             bands approximation (fast). If 'kane', include Gamma-valley
             non-parabolicity under the k.p Kane approximation (slow).
         '''
+        self._zero_current_image(V, path=None, show=True,
+                                 T=300., N=1000, approx='kane')
+
+    def save_zero_current_image(self, path, V, show=False,
+                                T=300., N=1000, approx='kane'):
+        self._zero_current_image(V=V, path=path, show=show,
+                                 T=300., N=1000, approx='kane')
+
+    def _zero_current_image(self, V, path=None, show=False, 
+                            T=300., N=1000, approx='kane'):
         solution = self.get_zero_current(V, T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
@@ -461,8 +472,8 @@ class TwoTerminalDevice(object):
         ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
         ymin, ymax = ax2.get_ylim()
-        if ymax/ymin > 1e10:
-            ax2.set_ylim(ymax/1e10, ymax)
+        if ymax/ymin > cfg['plot/semilogy/yrange']:
+            ax2.set_ylim(ymax/cfg['plot/semilogy/yrange'], ymax)
             
         ax3.set_ymargin(0.05)
         dEv_dx = numpy.empty_like(solution.dEv_dx)
@@ -476,8 +487,10 @@ class TwoTerminalDevice(object):
         ax3.yaxis.get_major_formatter().set_powerlimits((-3, 3))
         self.filtered_autolim(ax3, solution.dEv_dx, solution.dEc_dx,
                               solution.field)
-        
-        plt.show()
+        if path is not None:
+            plt.savefig(path)
+        if show:
+            plt.show()
 
     def interactive_zero_current(self, T=300., N=1000, approx='kane'):
         '''
@@ -527,8 +540,8 @@ class TwoTerminalDevice(object):
         (ax2_n,) = ax2.semilogy(x, solution.n, 'b--', label='$n$')
         ax2.set_ylabel('Concentration (cm$^{-3}$)')
         ymin, ymax = ax2.get_ylim()
-        if ymax/ymin > 1e10:
-            ax2.set_ylim(ymax/1e10, ymax)
+        if ymax/ymin > cfg['plot/semilogy/yrange']:
+            ax2.set_ylim(ymax/cfg['plot/semilogy/yrange'], ymax)
         
         (ax3_field,) = ax3.plot(x, solution.field, 'k-')
         (ax3_dEv_dx,) = ax3.plot(x, solution.dEv_dx, color=RED, alpha=0.7)
@@ -584,8 +597,8 @@ class TwoTerminalDevice(object):
                 ax.set_ybound(min(old_ymin, new_ymin), max(old_ymax, new_ymax))
                 
             ymin, ymax = ax2.get_ylim()
-            if ymax/ymin > 1e10:
-                ax2.set_ybound(ymax/1e10, ymax)
+            if ymax/ymin > cfg['plot/semilogy/yrange']:
+                ax2.set_ybound(ymax/cfg['plot/semilogy/yrange'], ymax)
             
             self.filtered_autolim(ax3, solution.dEv_dx, solution.dEc_dx,
                                   solution.field)
@@ -630,20 +643,20 @@ class TwoTerminalDevice(object):
             fmax += delta
         ax.set_ybound(fmin, fmax)
 
-    def save_zero_current(self, path, V, show=False, T=300, N=1000,
-                         approx='kane'):
+    def save_zero_current(self, V, path, show=False, T=300, N=1000,
+                          approx='kane'):
         '''
-        Save the band profile at a given bias voltage under the
+        Save the band profile data and image at a given bias voltage under the
         zero-current approximation.
         
         Arguments
         ---------
-        path : string
-            the file path
-        show : bool
-            shows the bands if True
         V : float
             Bias voltage, i.e. left/top contact bias - right/bottom contact bias
+        path : string
+            the file path without (excluding file extension)
+        show : bool
+            shows the bands if True
         T : float (default=300.)
             Device temperature
         N : int (default=1000)
@@ -654,10 +667,10 @@ class TwoTerminalDevice(object):
             bands approximation (fast). If 'kane', include Gamma-valley
             non-parabolicity under the k.p Kane approximation (slow).
         '''
-        if show:
-            self.show_zero_current(V, T, N, approx)
         s = self.get_zero_current(V, T, N, approx)
-        self._save_solution(s, path)
+        self._save_solution(s, path=path+'.txt')
+        self._zero_current_image(V=V, path=path+'.png', show=show,
+                                 T=T, N=N, approx=approx)
     
     def _calc_capacitance(self, V, dV, T=300, N=1000, approx='kane'):
         return capacitance_zero_current(self, V, dV, T, N, approx)
