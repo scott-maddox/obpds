@@ -19,8 +19,6 @@
 #############################################################################
 
 from setuptools import setup, find_packages
-from Cython.Build import cythonize
-import numpy
 
 # read in __version__
 exec(open('src/obpds/version.py').read())
@@ -40,17 +38,13 @@ setup(
                 'obpds.examples'],
       package_dir={'obpds': 'src/obpds'},
       test_suite='obpds.tests',
-      setup_requires=['cython',
-                      'numpy'],
-      install_requires=['numpy',
+      install_requires=['fdint >= 2.0',
+                        'openbandparams >= 0.9',
                         'scipy',
                         'matplotlib',
                         'pint',
-                        'fdint >= 2.0',
-                        'openbandparams >= 0.9'],
+                        'numpy', # install numpy first (for some reason this works)
+                        ],
       zip_safe=True,
       use_2to3=True,
-      # Cython
-      ext_modules=cythonize("src/obpds/*.pyx"),
-      include_dirs=[numpy.get_include()],
       )
