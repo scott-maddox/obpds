@@ -291,17 +291,13 @@ def charge_neutrality(device, V, phi_p, phi_n, T=300., N=1000,
 #         last_psi = psi
         rho = p(psi, buf1) - n(psi, buf2) + parameters.Nnet - residual
         # replace nan's with 0.0
-        for i in xrange(N):
-            if numpy.isnan(rho[i]):
-                rho[i] = 0.0
+        rho[numpy.isnan(rho)] = 0.0
         logger.debug('rho = %s', rho)
         return rho
     def A0(psi):
         drho_dpsi = dp(psi, buf1) - dn(psi, buf2)
         # replace nan's with 1.0
-        for i in xrange(N):
-            if numpy.isnan(drho_dpsi[i]) or drho_dpsi[i] == 0.:
-                drho_dpsi[i] = 1.0
+        drho_dpsi[numpy.isnan(drho_dpsi)] = 1.0
         logger.debug('df_dpsi = %s', drho_dpsi)
         return spdiags(drho_dpsi, [0], N, N, format='csr')
     result = newton(G0, A0, psi0)
@@ -404,9 +400,7 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
         # f = q/eps * (p - n + Nnet)
         f = (p(psi, buf1) - n(psi, buf2) + parameters.Nnet) * q_over_eps
         # replace nan's with 0.0
-        for i in xrange(N):
-            if numpy.isnan(f[i]):
-                f[i] = 0.0
+        f[numpy.isnan(f)] = 0.0
         logger.debug('f = %s', f)
         update_Fpsi(Fpsi, psi, f, dx, a=a, b=b)
         return Fpsi
@@ -414,9 +408,7 @@ def _poisson_zero_current(device, psi0, phi_p, phi_n, V, T=300., N=1000,
         # df_dpsi = q/eps * (dp - dn)
         df_dpsi = (dp(psi, buf1) - dn(psi, buf2)) * q_over_eps
         # replace nan's with 1.0
-        for i in xrange(N):
-            if numpy.isnan(df_dpsi[i]):
-                df_dpsi[i] = 1.0
+        df_dpsi[numpy.isnan(df_dpsi)] = 1.0
         logger.debug('df_dpsi = %s', df_dpsi)
         update_Fpsi_jacobian(Fpsi_jacobian, df_dpsi, dx)
         return Fpsi_jacobian
