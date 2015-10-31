@@ -28,7 +28,7 @@ sys.path.insert(0,
 from obpds import *
 
 # Layers
-p = Layer(1*um, Material(GaAs,  1e17/cm3))
+p = Layer(1*um, GaAs,  1e17/cm3)
 
 def graded_AlGaAs(x, t):
     Al = x/t*0.3

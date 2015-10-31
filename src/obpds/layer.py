@@ -19,6 +19,7 @@
 #############################################################################
 
 from .units import to_units, cm
+from .material import Material
 import numpy
 
 
@@ -26,17 +27,20 @@ __all__ = ['Layer', 'GradedLayer', 'CompoundLayer']
 
 
 class Layer(object):
-    def __init__(self, thickness, material):
+    def __init__(self, thickness, alloy, doping=None):
         '''
-        Params
-        ------
-        thickness : float
-            thickness (cm)
-        material : Material
-            material the layer is composed of
+        Parameters
+        ----------
+        thickness : physical quantity
+            thickness of the layer
+        alloy : openbandparams.IIIVZincBlendeAlloy
+            alloy the layer is composed of
+        doping : physical quantity (default=None)
+            net ionized dopant concentration, e.g. 1e18/cm3.
+            Positive for p-type (acceptors), negative for n-type (donors).
         '''
         self._thickness = to_units(thickness, cm)
-        self._material = material
+        self._material = Material(alloy=alloy, doping=doping)
 
     def get_thickness(self):
         '''
@@ -84,6 +88,15 @@ class Layer(object):
 
 class GradedLayer(Layer):
     def __init__(self, thickness, material_func):
+        '''
+        Parameters
+        ----------
+        thickness : physical quantity
+            thickness of the layer
+        material_func : f(x, xmax) -> Material
+            callable that accepts the position and thickness and returns
+            the Material at that position
+        '''
         self._thickness = to_units(thickness, cm)
         self._material_func = material_func
 

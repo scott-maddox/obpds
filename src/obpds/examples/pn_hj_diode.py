@@ -28,8 +28,8 @@ sys.path.insert(0,
 from obpds import *
 
 # Layers
-p = Layer(1*um, Material(GaAs,  1e17/cm3))
-N = Layer(1*um, Material(AlGaAs(Al=0.3), -1e17/cm3))
+p = Layer(1*um, GaAs,  1e17/cm3)
+N = Layer(1*um, AlGaAs(Al=0.3), -1e17/cm3)
 
 # Device
 d = TwoTerminalDevice(layers=[p, N],

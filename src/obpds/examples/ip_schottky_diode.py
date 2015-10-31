@@ -18,7 +18,7 @@
 #
 #############################################################################
 
-import logging; logging.basicConfig(level='INFO')
+import logging; logging.basicConfig()
 
 # Make sure we import the local obpds version
 import os
@@ -28,8 +28,8 @@ sys.path.insert(0,
 from obpds import *
 
 # Layers
-i = Layer(0.05*um, Material(GaAs))
-p = Layer(0.25*um, Material(GaAs, 1e17/cm3))
+i = Layer(0.05*um, GaAs)
+p = Layer(0.25*um, GaAs, 1e17/cm3)
 
 # Device
 d = TwoTerminalDevice(layers=[i, p],
