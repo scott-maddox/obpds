@@ -169,7 +169,6 @@ def get_fermi_functions(phi_p, phi_n, Ev, Nv,
             return boltzmann_dn3(phi_n, psi, Ec_Gamma, Ec_L, Ec_X,
                              Nc_Gamma, Nc_L, Nc_X, Vt, out=buf)
     elif approx == 'parabolic':
-        #TODO: get rid of Ev - psi, etc.
         def p(psi, buf=None):
             return parabolic_p(phi_p, psi, Ev, Nv, Vt, out=buf)
         def n_Gamma(psi, buf=None):
@@ -559,7 +558,8 @@ def capacitance_zero_current(device, V, dV, T=300., N=1000, approx='kane'):
     # We could take the absolute value, integrate, and then divide by 2, but
     # that doesn't handle one side of the junction extending to the edge of the
     # the simulated region. Instead, we take the larger of the positive or
-    # negative dQ.
+    # negative dQ. This is necessary because one of the plates might reach
+    # outside of the simulated region.
     drho_positive = numpy.where(drho > 0., drho, zeros)
     drho_negative = numpy.where(drho < 0., drho, zeros)
     dQ_positive = numpy.trapz(drho_positive, dx=s1.x[1])
