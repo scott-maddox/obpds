@@ -18,11 +18,12 @@
 #
 #############################################################################
 
-# Make sure we import the local package
-import os
-import sys
-sys.path.insert(0,
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from obpds.tests import *
-import unittest
-unittest.main()
+if __name__ == "__main__":
+    # Make sure we import the local package
+    import os
+    import sys
+    sys.path.insert(0,
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+    from obpds.tests import *
+    import unittest
+    unittest.main()

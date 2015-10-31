@@ -37,7 +37,7 @@ setup(
                 'obpds.tests',
                 'obpds.examples'],
       package_dir={'obpds': 'src/obpds'},
-      test_suite='obpds.tests',
+      test_suite='nose.collector',
       install_requires=['fdint >= 2.0',
                         'openbandparams >= 0.9',
                         'scipy',
@@ -45,6 +45,4 @@ setup(
                         'pint',
                         'numpy', # install numpy first (for some reason this works)
                         ],
-      zip_safe=True,
-      use_2to3=True,
       )

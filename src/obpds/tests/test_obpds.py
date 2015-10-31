@@ -18,53 +18,53 @@
 #
 #############################################################################
 
-# Make sure we import the local package
-import os
-import sys
-sys.path.insert(0,
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+if __name__ == '__main__':
+    # Make sure we import the local package
+    import os
+    import sys
+    sys.path.insert(0,
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from obpds import *
 
 
-from obpds.tests.obpds_test_case import OBPDSTestCase
 import unittest
 
-class TestBasic(OBPDSTestCase):
+class TestBasics(unittest.TestCase):
     '''
     Tests basic functionality
     '''
 
     def test_pn_diode_default(self):
-        p = Layer(1*um, Material(GaAs,  1e17/cm3))
-        n = Layer(1*um, Material(GaAs, -1e17/cm3))
+        p = Layer(1*um, GaAs,  1e17/cm3)
+        n = Layer(1*um, GaAs, -1e17/cm3)
         d = TwoTerminalDevice(layers=[p, n])
         s = d.get_flatband()
         s = d.get_equilibrium()
 
     def test_pn_diode_boltzmann(self):
-        p = Layer(1*um, Material(GaAs,  1e17/cm3))
-        n = Layer(1*um, Material(GaAs, -1e17/cm3))
+        p = Layer(1*um, GaAs,  1e17/cm3)
+        n = Layer(1*um, GaAs, -1e17/cm3)
         d = TwoTerminalDevice(layers=[p, n])
         s = d.get_flatband()
         s = d.get_equilibrium(approx='boltzmann')
 
     def test_pn_diode_parabolic(self):
-        p = Layer(1*um, Material(GaAs,  1e17/cm3))
-        n = Layer(1*um, Material(GaAs, -1e17/cm3))
+        p = Layer(1*um, GaAs,  1e17/cm3)
+        n = Layer(1*um, GaAs, -1e17/cm3)
         d = TwoTerminalDevice(layers=[p, n])
         s = d.get_flatband()
         s = d.get_equilibrium(approx='parabolic')
 
     def test_pn_diode_kane(self):
-        p = Layer(1*um, Material(GaAs,  1e17/cm3))
-        n = Layer(1*um, Material(GaAs, -1e17/cm3))
+        p = Layer(1*um, GaAs,  1e17/cm3)
+        n = Layer(1*um, GaAs, -1e17/cm3)
         d = TwoTerminalDevice(layers=[p, n])
         s = d.get_flatband()
         s = d.get_equilibrium(approx='kane')
 
     def test_pn_hj_diode(self):
-        p = Layer(1*um, Material(GaAs,  1e17/cm3))
-        N = Layer(1*um, Material(AlGaAs(Al=0.3), -1e17/cm3))
+        p = Layer(1*um, GaAs,  1e17/cm3)
+        N = Layer(1*um, AlGaAs(Al=0.3), -1e17/cm3)
         d = TwoTerminalDevice(layers=[p, N])
         s = d.get_flatband()
         s = d.get_equilibrium()
