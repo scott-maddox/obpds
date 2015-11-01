@@ -30,8 +30,8 @@ from .config import cfg
 
 __all__ = ['TwoTerminalDevice']
 
-BLUE = '#0000FF'
-RED = '#FF0000'
+BLUE = '#072a9f'
+RED = '#d62315'
 
 # electron charge
 q = 1.602176565e-19 # C
@@ -119,6 +119,7 @@ class TwoTerminalDevice(object):
         x, Ev, Ec, Ei = self._layer.get_flatband(T)
         return numpy.array(x), numpy.array(Ev), numpy.array(Ec), numpy.array(Ei)
 
+    #TODO: make this consistent with the other show_* methods.
     def show_flatband(self, T=300.):
         '''
         Show a plot of the band profile at flatband.
@@ -296,8 +297,10 @@ class TwoTerminalDevice(object):
         solution = self.get_equilibrium(T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
+        plt.style.use(['ggplot'])
         _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
-                                          figsize=(10, 10), tight_layout=True)
+                                          figsize=(10, 10),
+                                          tight_layout=cfg['plot/tight_layout'])
         ax1.set_ymargin(0.05)
         ax1.plot(x, solution.Ev, 'r-', label='$E_v$')
         ax1.plot(x, solution.Ec, 'b-', label='$E_c$')
@@ -419,7 +422,7 @@ class TwoTerminalDevice(object):
             self._zero_current[(V, T, N, approx)] = solution
             return solution
 
-    def show_zero_current_image(self, V, T=300., N=1000, approx='kane'):
+    def show_zero_current(self, V, T=300., N=1000, approx='kane'):
         '''
         Plot and show the band profile at a given bias voltage under the
         zero-current approximation.
@@ -451,8 +454,10 @@ class TwoTerminalDevice(object):
         solution = self.get_zero_current(V, T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
+        plt.style.use(['ggplot'])
         _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
-                                          figsize=(10, 10), tight_layout=True)
+                                          figsize=(10, 10),
+                                          tight_layout=cfg['plot/tight_layout'])
 
         ax1.set_ymargin(0.05)
         ax2.set_ymargin(0.05)
@@ -509,9 +514,10 @@ class TwoTerminalDevice(object):
         solution = self.get_zero_current(0., T, N, approx)
         x = solution.x*1e7 # nm
         import matplotlib.pyplot as plt
+        plt.style.use(['ggplot'])
         fig = plt.figure(figsize=(10, 10),
                          #facecolor='white', edgecolor='white',
-                         tight_layout=True)
+                         tight_layout=cfg['plot/tight_layout'])
         ax3 = plt.subplot2grid(shape=(3,15), loc=(2,0), colspan=14)
         ax2 = plt.subplot2grid(shape=(3,15), loc=(1,0), colspan=14, sharex=ax3)
         ax1 = plt.subplot2grid(shape=(3,15), loc=(0,0), colspan=14, sharex=ax3)
@@ -711,8 +717,10 @@ class TwoTerminalDevice(object):
         rCs = 1/C**2
         ndV_drCs = (-1.)/numpy.gradient(rCs, (V[1]-V[0]))
         import matplotlib.pyplot as plt
+        plt.style.use(['ggplot'])
         _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
-                                          figsize=(10, 10), tight_layout=True)
+                                          figsize=(10, 10),
+                                          tight_layout=cfg['plot/tight_layout'])
             
         ax1.set_ymargin(0.05)
         ax1.plot(V, C, 'r-')
@@ -741,8 +749,10 @@ class TwoTerminalDevice(object):
         ndV_drCs = (-1.)/numpy.gradient(rCs, (V[1]-V[0]))
         if show:
             import matplotlib.pyplot as plt
+            plt.style.use(['ggplot'])
             _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex='col',
-                                              figsize=(10, 10), tight_layout=True)
+                                              figsize=(10, 10),
+                                              tight_layout=cfg['plot/tight_layout'])
                 
             ax1.set_ymargin(0.05)
             ax1.plot(V, C, 'r-')
