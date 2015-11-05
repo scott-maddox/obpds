@@ -25,5 +25,10 @@ if __name__ == "__main__":
     sys.path.insert(0,
         os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
     from obpds.tests import *
+    
+    # bring all test cases into this module
+    from test_obpds import *
+    
+    # run them
     import unittest
     unittest.main()

@@ -33,39 +33,41 @@ class TestBasics(unittest.TestCase):
     '''
     Tests basic functionality
     '''
-
-    def test_pn_diode_default(self):
+    
+    def _get_pn_diode(self):
         p = Layer(1*um, GaAs,  1e17/cm3)
         n = Layer(1*um, GaAs, -1e17/cm3)
-        d = TwoTerminalDevice(layers=[p, n])
+        d = TwoTerminalDevice(layers=[p, n], Fp='left', Fn='right')
+        return d
+
+    def test_pn_diode_default(self):
+        d = self._get_pn_diode()
         s = d.get_flatband()
         s = d.get_equilibrium()
 
     def test_pn_diode_boltzmann(self):
-        p = Layer(1*um, GaAs,  1e17/cm3)
-        n = Layer(1*um, GaAs, -1e17/cm3)
-        d = TwoTerminalDevice(layers=[p, n])
+        d = self._get_pn_diode()
         s = d.get_flatband()
         s = d.get_equilibrium(approx='boltzmann')
 
     def test_pn_diode_parabolic(self):
-        p = Layer(1*um, GaAs,  1e17/cm3)
-        n = Layer(1*um, GaAs, -1e17/cm3)
-        d = TwoTerminalDevice(layers=[p, n])
+        d = self._get_pn_diode()
         s = d.get_flatband()
         s = d.get_equilibrium(approx='parabolic')
 
     def test_pn_diode_kane(self):
-        p = Layer(1*um, GaAs,  1e17/cm3)
-        n = Layer(1*um, GaAs, -1e17/cm3)
-        d = TwoTerminalDevice(layers=[p, n])
+        d = self._get_pn_diode()
         s = d.get_flatband()
         s = d.get_equilibrium(approx='kane')
+
+    def test_get_cv(self):
+        d = self._get_pn_diode()
+        s = d.get_cv(-5,1,N=10)
 
     def test_pn_hj_diode(self):
         p = Layer(1*um, GaAs,  1e17/cm3)
         N = Layer(1*um, AlGaAs(Al=0.3), -1e17/cm3)
-        d = TwoTerminalDevice(layers=[p, N])
+        d = TwoTerminalDevice(layers=[p, N], Fp='left', Fn='right')
         s = d.get_flatband()
         s = d.get_equilibrium()
 
