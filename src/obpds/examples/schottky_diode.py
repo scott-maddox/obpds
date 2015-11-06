@@ -18,12 +18,24 @@
 #
 #############################################################################
 
-from openbandparams import *
+import logging; logging.basicConfig()
 
-from .config import cfg
-from .version import __version__
-from .units import *
-from .material import *
-from .contact import *
-from .layer import *
-from .device import *
+# Make sure we import the local obpds version
+import os
+import sys
+sys.path.insert(0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from obpds import *
+
+# Layers
+n = Layer(0.3*um, GaAs, -1e17/cm3)
+
+# Device
+d = TwoTerminalDevice(layers=[n],
+                      contacts=[SchottkyContact(), OhmicContact()],
+                      Fn='right')
+
+# Simulate and show the equilibrium band profile using the default method.
+d.show_equilibrium()
+d.show_zero_current(V=0.5)
+d.show_zero_current(V=-0.5)

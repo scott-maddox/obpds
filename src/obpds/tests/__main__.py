@@ -18,12 +18,17 @@
 #
 #############################################################################
 
-from openbandparams import *
-
-from .config import cfg
-from .version import __version__
-from .units import *
-from .material import *
-from .contact import *
-from .layer import *
-from .device import *
+if __name__ == "__main__":
+    # Make sure we import the local package
+    import os
+    import sys
+    sys.path.insert(0,
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+    from obpds.tests import *
+    
+    # bring all test cases into this module
+    from test_obpds import *
+    
+    # run them
+    import unittest
+    unittest.main()

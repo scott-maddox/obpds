@@ -18,12 +18,24 @@
 #
 #############################################################################
 
-from openbandparams import *
+import logging; logging.basicConfig()
 
-from .config import cfg
-from .version import __version__
-from .units import *
-from .material import *
-from .contact import *
-from .layer import *
-from .device import *
+# Make sure we import the local obpds version
+import os
+import sys
+sys.path.insert(0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from obpds import *
+
+# Layers
+n = Layer(1*um, GaAs, -1e17/cm3)
+p = Layer(1*um, GaAs,  1e17/cm3)
+
+# Device
+d = TwoTerminalDevice(layers=[n, p],
+                      Fp='right',
+                      Fn='left')
+
+# Simulate and show an interactive band profile under the zero current
+# approximation.
+d.interactive_zero_current()

@@ -18,16 +18,23 @@
 #
 #############################################################################
 
-from numpy import exp, log
+# Make sure we import the local obpds version
+import os
+import sys
+sys.path.insert(0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from obpds import *
 
-def fermi_p(psi, Vp, phi_p, nieffref, Vt):
-    return nieffref*exp((-psi+Vp+phi_p)/Vt)
+# Layers
+p = Layer(0.5*um, Material(GaAs,  1e18/cm3))
+n = Layer(1*um, Material(GaAs, -1e16/cm3))
 
-def fermi_n(psi, Vn, phi_n, nieffref, Vt):
-    return nieffref*exp((psi+Vn-phi_n)/Vt)
+# Device
+d = TwoTerminalDevice(layers=[p, n],
+                      Fp='left',
+                      Fn='right')
 
-def inv_fermi_p(psi, Vp, p, nieffref, Vt):
-    return psi - Vp + log(p / nieffref)*Vt
+d.get_cv(-2, 2)
 
-def inv_fermi_n(psi, Vn, n, nieffref, Vt):
-    return psi + Vn - log(n / nieffref)*Vt
+# From the src directory, run::
+#    pycallgraph graphviz -- obpds/profile/graph_cv_pn_diode.py

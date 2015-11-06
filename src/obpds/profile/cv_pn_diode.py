@@ -25,23 +25,15 @@ sys.path.insert(0,
     os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from obpds import *
 
-AlAs._meff_e_X_DOS = GaAs._meff_e_X_DOS
-AlSb._meff_e_X_DOS = GaAs._meff_e_X_DOS
+# Layers
+p = Layer(0.5*um, Material(GaAs,  1e18/cm3))
+n = Layer(1*um, Material(GaAs, -1e16/cm3))
 
-# Layer Structure
-ls = LayerStructure([
-    OhmicContact(),
-    Layer(100*nm, Material(InAs, 1e19/cm3)),
-    Layer(2*um, Material(InAs, 1e17/cm3)),
-    Layer(6*um, Material(InAs, 1e14/cm3)),
-    Layer(1.5*um, Material(InAs,  -1e18/cm3)),
-    Layer(0.5*um, Material(InAs,  -2e18/cm3)),
-    OhmicContact(),
-])
+# Device
+d = TwoTerminalDevice(layers=[p, n],
+                      Fp='left',
+                      Fn='right')
 
-# ls.show_composition() # show the composition vs. depth
-# ls.show_doping() # show the doping vs. depth
-# ls.show_flatband() # show the flatband profile vs. depth
-
-# Simulate and show the equilibrium band profile using the default method.
-ls.show_equilibrium(N=1000)
+import cProfile
+cProfile.run(statement='d.get_cv(-2, 2)', filename='stats')
+print 'Done.'

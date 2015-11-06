@@ -18,27 +18,35 @@
 #
 #############################################################################
 
+import logging; logging.basicConfig()
+
 # Make sure we import the local obpds version
 import os
 import sys
 sys.path.insert(0,
     os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from obpds import GaAs, cm3, um, Material, Layer, OhmicContact, LayerStructure
+from obpds import *
 
 # Layers
-p = Layer(1*um, Material(GaAs,  1e17/cm3))
-n = Layer(1*um, Material(GaAs, -1e17/cm3))
+p = Layer(1*um, GaAs,  1e17/cm3)
 
-# Contacts
-top = OhmicContact()
-bottom = OhmicContact()
+def graded_AlGaAs(x, t):
+    Al = x/t*0.3
+    return Material(AlGaAs(Al=Al), -1e17/cm3)
+N = GradedLayer(1*um, graded_AlGaAs)
 
-# Layer Structure
-ls = LayerStructure([top, p, n, bottom])
-
-# ls.show_composition() # show the composition vs. depth
-# ls.show_doping() # show the doping vs. depth
-# ls.show_flatband() # show the flatband profile vs. depth
+# Device
+d = TwoTerminalDevice(layers=[p, N],
+                      Fp='left',
+                      Fn='right')
 
 # Simulate and show the equilibrium band profile using the default method.
-ls.show_equilibrium()
+d.show_equilibrium()
+
+# Simulate and show the band profile at 0.5 V forward bias under the zero
+# current approximation.
+d.show_zero_current(V=0.5)
+
+# Simulate and show the band profile at 0.5 V reverse bias under the zero
+# current approximation.
+d.show_zero_current(V=-0.5)

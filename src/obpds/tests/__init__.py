@@ -18,18 +18,4 @@
 #
 #############################################################################
 
-# Make sure we import the local obpds version
-import os
-import sys
-sys.path.insert(0,
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from obpds import *
-
-# Materials
-T = 300
-mat = Material(InAs)
-print 'Nc {:e}'.format(mat.Nc(T=T))
-print 'Nv {:e}'.format(mat.Nv(T=T))
-print 'nie {:e}'.format(mat.nie(T=T))
-print 'Ei {:f}'.format(mat.Ei(T=T))
-print 'Eg/2 {:f}'.format(mat.Eg(T=T)/2)
+from . import test_obpds

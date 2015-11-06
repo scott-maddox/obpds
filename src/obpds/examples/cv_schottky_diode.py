@@ -18,12 +18,26 @@
 #
 #############################################################################
 
-from openbandparams import *
+import logging; logging.basicConfig()
 
-from .config import cfg
-from .version import __version__
-from .units import *
-from .material import *
-from .contact import *
-from .layer import *
-from .device import *
+# Make sure we import the local obpds version
+import os
+import sys
+sys.path.insert(0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from obpds import *
+
+# Layers
+n = Layer(1*um, GaAs, -1e16/cm3)
+
+# Device
+d = TwoTerminalDevice(layers=[n],
+                      contacts=[SchottkyContact(), OhmicContact()],
+                      Fn='right')
+
+# Simulate and show the band profile at 0.5 V reverse bias under the zero
+# current approximation.
+d.show_zero_current(V=-2)
+
+print 'C = {} F/cm**2'.format(d.get_capacitance(V=-0.5))
+d.show_cv(-2, 0.2)

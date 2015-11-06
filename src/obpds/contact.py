@@ -18,8 +18,20 @@
 #
 #############################################################################
 
+
+__all__ = ['Contact', 'OhmicContact', 'SchottkyContact']
+
+
 class Contact(object):
     pass
 
 class OhmicContact(Contact):
     pass
+
+class SchottkyContact(Contact):
+    '''
+    A Schottky contact that pins at the "universal pinning level",
+    which is approximately 4.9 eV below the vacuum level.
+    '''
+    def __init__(self, work_function=4.9):
+        self.work_function = work_function
