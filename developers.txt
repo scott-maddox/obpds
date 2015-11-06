@@ -17,38 +17,39 @@ When you want release a new version, follow these directions. First, create a
 release branch by branching off of the develop branch (substitute in the
 appropriate version number):
 
-    git checkout -b release-1.0 develop
+    git checkout -b release-0.1 develop
 
 Next, bump the version number, if it hasn't already been bumped. From the root
 of the git repository run these commands (again, substituting the appropriate
 version number):
 
-    echo "__version__ = '1.0'" > src/obpds/version.py
-    git commit -am "bump version number to 1.0"
+    echo "__version__ = '0.1'" > src/obpds/version.py
+    git commit -am "bump version number to 0.1"
 
 Now is a good time to install and test in a virtualenv, which can
 help find problems with installation and dependencies:
 
     python setup.py sdist
     cd dist
-    tar -xvzf obpds-1.0.tar.gz
+    tar -xvzf obpds-0.1.tar.gz
 
     virtualenv venv
     source venv/bin/activate
-    cd obpds-1.0
+    cd obpds-0.1
+    pip install numpy matplotlib scipy
     python setup.py install
     cd ..
-    python -m fdint.tests
+    python -m obpds.tests
     deactivate
-    rm -rf venv obpds-1.0
+    rm -rf venv obpds-0.1
 
 Go ahead and fix any bugs you find in the release branch, and we'll merge them
 back into the develop branch later.  Next, merge the changes from the release
 branch into the master branch, and tag the release:
 
     git checkout master
-    git merge --no-ff release-1.0
-    git tag -a v1.0
+    git merge --no-ff release-0.1
+    git tag -a v0.1
     git push origin master
 
 Then run the following commands from the root of the git repository to build
@@ -65,5 +66,5 @@ Now you can merge the release branch back into the develop branch, and then
 delete the release branch:
 
     git checkout develop
-    git merge --no-ff release-1.0
-    git branch -d release-1.0
+    git merge --no-ff release-0.1
+    git branch -d release-0.1
