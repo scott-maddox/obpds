@@ -36,7 +36,7 @@ package index, which contains many python packages that can be easily installed
 with a single command. To install OBPDS from `PyPi`_, open up a command
 prompt and run the following command::
 
-    pip install fdint
+    pip install obpds
 
 .. _`PyPi`: http://pypi.python.org/pypi
 

@@ -1,3 +1,7 @@
+Changes in 0.1.2:
+
+- fixed an egregious copy-paste error in the README
+
 Changes in 0.1.1:
 
 - updated and improved README
