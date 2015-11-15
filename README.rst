@@ -4,24 +4,20 @@ Open Band Parameters Device Simulator (OBPDS)
 A free, open-source technology computer aided design software for simulating
 semiconductor structures and devices.
 
-The plan is to begin by providing 1D, zero-current electrostatic simulation of
+OBPDS currently provides 1D electrostatic simulation of
 III-V compound semiconductor heterostructures, similar to Prof. William
-Frensley's `Bandprof`_. Next, drift-diffusion current simulation will be added
-under the assumption of small band discontinuities. Then large band
-discontinuities will be accounted for with thermionic emission boundary
-conditions.
+Frensley's `Bandprof`_. Materials parameters are provided by the
+`Open Band Parameters`_ sister project.
 
-Materials parameters are provided by the `Open Band Parameters`_ sister
-project.
+If you would like to try OBPDS before installing it,
+check out the `interactive tutorial`_.
 
-The `source code`_ and `documentation`_ (coming soon) are graciously hosted
-by GitHub.
+The `source code`_ is graciously hosted by GitHub.
 
 .. _`BandProf`: https://courses.ece.ubc.ca/480/downloads.htm
 .. _`Open Band Parameters`: http://github.com/scott-maddox/openbandparams
+.. _`interactive tutorial`: http://mybinder.org/repo/scott-maddox/obpds-binder/tutorial.ipynb
 .. _`source code`: http://github.com/scott-maddox/obpds
-.. _`documentation`: http://scott-maddox.github.io/obpds
-
 
 Installation
 ============
@@ -35,15 +31,20 @@ suggested.
 From PyPi
 ---------
 
-This is the easiest method. Install from `PyPi`_ by running `pip install obpds`
-from the command line.
+This is the recommended method for installing OBPDS. `PyPi`_ is the python
+package index, which contains many python packages that can be easily installed
+with a single command. To install OBPDS from `PyPi`_, open up a command
+prompt and run the following command::
+
+    pip install fdint
 
 .. _`PyPi`: http://pypi.python.org/pypi
 
-From Github
+From Source
 -----------
 
-First, you will need to install the following prerequisite packages:
+In order to install OBPDS from source, you must fist install the
+following prerequisite packages:
 
 - Numpy_
 - Scipy_
@@ -55,18 +56,18 @@ First, you will need to install the following prerequisite packages:
 .. _`Matplotlib`: http://matplotlib.org/users/installing.html
 .. _`OpenBandParams`: http://scott-maddox.github.io/openbandparams/installation.html
 
-Once these are installed, download the latest release `.zip` or `.tar.gz`
-source package from the `github page`_, extract its contents, and run
-`python setup.py install` from within the extracted directory
-(OBPDS is a pure-python library, for now, so no compiling occurs
-during this installation).
+Once these are installed, download the latest release ``.zip`` or ``.tar.gz``
+source package from the `github releases`_ page, extract its contents, and run
+``python setup.py install`` from within the extracted directory.
 
-.. _`github page`: http://github.com/scott-maddox/obpds/releases/latest
+.. _`github releases`: http://github.com/scott-maddox/obpds/releases/latest
 
 Documentation
 =============
 
-Once you have OBPDS installed, check out the `tutorial`_
-(coming soon) to get acquainted.
+Interactive `documentation`_ is hosted through mybinder.org.
+If you have difficulty accessing the interactive version,
+a static version is available `here`_.
 
-.. _`tutorial`: http://scott-maddox.github.io/obpds/tutorial
+.. _`documentation`: http://mybinder.org/repo/scott-maddox/obpds-binder
+.. _`here`: https://github.com/scott-maddox/obpds-binder/blob/master/index.ipynb
