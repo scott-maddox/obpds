@@ -1,0 +1,8 @@
+Changes in 0.1.1:
+
+- updated and improved README
+
+Changes in 0.1:
+
+- initial release with 1D electrostatic simulation of III-V compound
+  semiconductor heterostructures
